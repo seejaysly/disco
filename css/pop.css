@@ -1,0 +1,40 @@
+body {
+  font-size: 12px;
+  font-family: 'Roboto', Arial, Verdana, Sans-Serif;
+  color: #666666;
+  min-width: 300px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+main {
+  width: 288px;
+  margin-top: 5px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+  text-align: left;
+  display: block;
+}
+
+.controls {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+.action {
+  font-size: 14px;
+  height: 32px;
+  display: block;
+}
+
+.loading-gif {
+  max-width: 16px;
+  max-height: 16px;
+  width: auto;
+  height: auto;
+}

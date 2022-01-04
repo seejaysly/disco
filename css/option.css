@@ -1,0 +1,22 @@
+.options {
+  font-family: 'Roboto', Arial, Verdana, Sans-Serif;
+  font-size: 14px;
+  background-color: #ccc;
+  margin: 0px;
+  color: #444;
+  text-align: left;
+  overflow: auto;
+}
+
+dd {
+  margin: 0;
+}
+
+.ip {
+  font-size: 10px;
+  margin-top: 10px;
+}
+
+.revoke {
+    width: 150px;
+}

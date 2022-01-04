@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+ * Author: Owen Schoppe <citable.extension@gmail.com>
+ * Printable and Citable by Owen Schoppe is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+-->
+<html lang="en">
+
+<head>
+	<title>Citable</title>
+	<meta name="viewport" content="width=1440, initial-scale=1.0">
+	<meta name="Description" content="Print Google Spreadsheets on sticky notes.">
+	<link rel="stylesheet" type="text/css" href="css/landscape.css" media="print">
+	<link rel="stylesheet" type="text/css" href="css/portrait.css" media="print">
+	<link rel="stylesheet" type="text/css" href="css/index.css" media="all">
+	<link rel="stylesheet" type="text/css" href="css/notes.css" media="all">
+	<link rel="stylesheet" type="text/css" href="css/print.css" media="print">
+	<link rel="stylesheet" type="text/css" href="/css/view.css" media="screen">
+
+	<script type="text/javascript" src="js/draggable.js"></script>
+	<script type="text/javascript" src="js/util.js"></script>
+	<script type="text/javascript" src="js/gdocs.js"></script>
+	<script type="text/javascript" src="js/printexport.js"></script>
+	<script type="text/javascript" src="js/render.js"></script>
+	<script type="text/javascript" src="js/view.js"></script>
+	<script type="text/javascript" src="js/analytics.js"></script>
+</head>
+
+<body>
+	<main>
+		<div id="controls-wrapper" class="grid scrollable scrollable-y panel">
+			<div id="controls" class="controls p-medium">
+				<h1 id="page-title" class="page-title m-bottom--small">Print</h1>
+				<div id="display" class="m-bottom--small">
+					<div id="butter" class="butter pam hidden m-bottom--small" aria-live="polite"></div>
+					<div id="selection" class="selection"></div>
+				</div>
+				<div id="total" class="m-bottom--small"></div>
+				<div id="button-wrapper" class="grid">
+					<button id="print-button" class="button primary-button m-right--xsmall" disabled>Print</button>
+					<button id="template-button" class="button secondary-button m-right--xsmall">Print Template</button>
+					<button id="cancel-button" class="button secondary-button right">Cancel</button>
+				</div>
+				<div class="divider m-vertical--large"></div>
+				<form id="note-wrapper shadow" class="">
+					<fieldset>
+						<legend class="label p-left--medium m-bottom--small"><span>Select Columns to Print</span></legend>
+						<div id="note" class="controls note">
+							<div id="elements" name="elements" class="p-medium">
+							</div>
+						</div>
+						<div class="shadow"></div>
+					</fieldset>
+				</form>
+				<div class></div>
+				<form id="radioControls" class="relative p-left--medium">
+					<fieldset class="relative">
+						<legend class="label m-bottom--small"><span>Format Printing</span></legend>
+						<div id="fonts" class="m-bottom--small">
+							<div><input type="radio" name="font" value="Droid" id="typed" /><label for="typed">Typed</label></div>
+							<div><input type="radio" name="font" value="handwritten" id="hand" /><label for="hand">Handwritten</label></div>
+						</div>
+						<div id="orientation" class="m-bottom--small">
+							<div id="radioland"><input type="radio" name="pages" value="landscape" id="landscape" /><label for="landscape">Landscape</label></div>
+							<div id="radioport"><input type="radio" name="pages" value="portrait" id="portrait" /><label for="portrait">Portrait</label></div>
+						</div>
+						<span aria-hidden="true">
+							<img class="pageIcon landscapeIcon" src="/css/img/Landscape128.png" />
+							<img class="pageIcon portraitIcon" src="/css/img/Portrait128.png" />
+							<span class="fontIcon">A</span>
+						</span>
+					</fieldset>
+				</form>
+				<div class="divider m-vertical--large"></div>
+				<div id="instructions" class="p-left--medium">
+					<p>Place stickies on templates as indicated.</p>
+					<p>Adjust your printer settings as needed.</p>
+				</div>
+			</div>
+			<div id="control-shadow"></div>
+		</div>
+
+		<div id="outputArea" class="scrollable has-indicator grow grid grid-vertical relative">
+			<div id="loading" class="page loading"><img src="css/img/loading.gif" height="16" width="16" title="Loading Document" alt="Loading Document" /></div>
+			<div id="output" class="grid"></div>
+			<div id="indicator" class="indicator">Page <span id="pageNum" class="pageNum">1</span></div>
+		</div>
+	</main>
+</body>
+
+</html>

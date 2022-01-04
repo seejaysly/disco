@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!--
+ * Author: Owen Schoppe <citable.extension@gmail.com>
+ * Printable and Disco by Owen Schoppe is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+-->
+<html data-ng-app="gDriveApp" ng-csp="" lang="en">
+
+<head>
+	<title>Disco</title>
+	<meta name="viewport" content="width=288, initial-scale=1.0">
+	<meta name="Description" content="Save citations to Google Spreadsheets">
+	<link rel="stylesheet" type="text/css" href="/css/index.css">
+	<link rel="stylesheet" type="text/css" href="/css/pop.css">
+	<link rel="stylesheet" type="text/css" href="/css/notes.css">
+	<link rel="stylesheet" type="text/css" href="/css/combobox.css" media="all">
+	<link rel="stylesheet" type="text/css" href="/css/angular-csp.css">
+
+	<script type="text/javascript" src="js/angular-1.7.5.min.js"></script>
+	<script type="text/javascript" src="js/util.js"></script>
+	<script type="text/javascript" src="js/combobox.js"></script>
+	<script type="text/javascript" src="js/queue.js"></script>
+	<script type="text/javascript" src="js/popup.js"></script>
+	<script type="text/javascript" src="js/analytics.js"></script>
+</head>
+
+<body style="background-color: #ebebeb;">
+	<div ng-controller='authController'>
+		<main id="frame">
+			<h1 class="visuallyhidden">Disco</h1>
+			<!--Note-->
+			<div class="note_wrapper shadow" ng-controller='CitationController'
+				ng-class="{fade: !data.auth || data.menu}" ng-keyup="myEvent($event)">
+				<div id="citation" class="note" style="background-color: #fff !important;box-shadow: 0px 3px 10px 3px rgb(171 171 171);">
+					<form id="addbookmark" name="citation">
+						<fieldset>
+							<legend class="visuallyhidden">Citation</legend>
+							<!--Summary Field-->
+							<div class="form">
+								<label for="summary" class="visuallyhidden">Summary</label>
+								<textarea id="summary" class="Droid input summary" name="summary"
+									placeholder="Select some text or type a note" ng-model="data.citation.Summary"
+									ng-disabled="data.menu || !data.auth" sel-focus="data.auth"></textarea>
+								<!--Title Field-->
+								<label for="title" class="visuallyhidden">Title</label>
+								<input type="text" id="title" class="Droid input title" name="title" value=""
+									placeholder="Enter a title" ng-model="data.citation.Title"
+									ng-disabled="data.menu || !data.auth" />
+								<!--Author Field-->
+								<label for="author" class="visuallyhidden">Author</label>
+								<input type="text" id="author" class="Droid input author" name="author" value=""
+									placeholder="Enter an author" ng-model="data.citation.Author"
+									ng-disabled="data.menu || !data.auth" />
+								<!--Url Field-->
+								<label for="url" class="visuallyhidden">Url</label>
+								<input type="text" id="url" class="Droid input url" name="url" value=""
+									placeholder="URL" ng-model="data.citation.Url"
+									ng-disabled="data.menu || !data.auth" />
+								<!--Tags Field-->
+								<!-- <label for="tags" class="visuallyhidden">Tags</label>
+									<input type="text" id="tags" class="Droid input tags" name="tags" value="" placeholder="Enter some tags" ng-model="data.citation.Tags" ng-disabled="data.menu || !data.auth" /> -->
+							</div>
+						</fieldset>
+						<!--Hack the citation validation by having a hidden required input with the date value. This would cause the form to be invalid if missing. Or we could require the url, or some other field... -->
+					</form>
+				</div>
+			</div>
+
+			<!--Auth-->
+			<div class="m-vertical--large" ng-hide="data.auth||data.loading">
+				<div class="center">
+					<a class="authBtn" ng-class="{fade:!data.online,active:getAuthFlow}" ng-disabled="!data.online"
+						ng-click='data.online&&getAuth()' tabindex="{{data.auth?'-1':0}}" sel-focus="!data.auth"
+						href>Sign in with Google</a>
+					<div class="p-top--medium p-left--xsmall p-right--xsmall">
+						<div class="instructions m-bottom--small">
+							<p>Enjoying Disco?</p>
+							<p>Support its ongoing development with a donation.</p>
+						</div>
+						<div ng-controller="actionController">
+							<a id="donateButton" class="p-xsmall center"
+								ng-click="donate('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CDRX53BPA7KZA&source=url')"
+								href>Donate</a>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+			<!--Controls-->
+			<div class="controls" ng-controller="DocsController" ng-keyup="myEvent($event)" ng-show="data.auth">
+
+				<form name="controls" novalidate>
+					<div id="selection_box">
+
+						<!--Document Selector and Loading Module-->
+						<div id="selection" name="selection"
+							class="grid grid-vertical col p-left--xsmall p-right--xsmall">
+							<label for="combobox-id-24" id="destination_label" class="label p-bottom--xxsmall"
+							ng-class="{fade:data.menu}" aria-hidden="true">Add tags (optional)</label>
+			
+							<div id="tagInput" class="tag-input" tags-directive></div>
+							<label for="combobox-id-24" id="destination_label" class="label p-bottom--xxsmall" ng-class="{fade:data.menu}" aria-hidden="true">Add comments (optional)</label>
+							<input type="text" class="input combobox__input" ng-model="data.citation.Comment" id="comment-id-24" aria-autocomplete="list" aria-controls="listbox-id-13" autocomplete="off" role="textbox" ng-disabled="data.menu || !data.auth" placeholder="Enter a comment">
+							<ul class="listbox listbox_horizontal" role="listbox" aria-label="Selected Options:" aria-orientation="horizontal"></ul>
+
+							<label for="destination" id="destination_label" class="label p-bottom--xxsmall"
+								ng-class="{fade:data.menu}" aria-hidden="true">Save Disco to Google Sheet</label>
+							<!--Loading-->
+							<div data-ng-show="data.loading && data.online" class="grid p-top--xsmall">
+								<img id="loading" class="loading-gif" src="css/img/loading.gif" title="Loading Sheets"
+									alt"Loading Sheets" />
+								<span
+									class="truncate p-left--xsmall m-vertical--xxxsmall">{{data.defaultDoc.title}}</span>
+							</div>
+
+							<!--Document Selector-->
+							<select class="col Droid destination" name="destination" id="destination"
+								aria-labelledby="destination_label" ng-model="data.defaultDoc"
+								ng-change="storeDefault()" data-ng-show="!data.loading"
+								ng-options="doc.title for doc in data.docs track by doc.id"
+								sel-focus="!data.defaultDoc.id">
+								<option value="" ng-disabled="data.menu">Create New Spreadsheet...</option>
+							</select>
+
+							<!--New Doc Title Input-->
+							<div class="new_doc_container p-top--xsmall" ng-hide="data.defaultDoc.id || data.loading"
+								ng-class="{'error':ng-dirty&&ng-invalid}">
+								<label for="docTitle" id="docTitle_label" class="visuallyhidden">New Spreadsheet
+									Title</label>
+								<input type="text" class="" name="docTitle" aria-labelledby="destination docTitle_label"
+									placeholder="Enter a document title" ng-model="data.newDoc"
+									ng-show="!data.defaultDoc.id" autocomplete="off" shown-validation
+									sel-focus="data.defaultDoc.id" required>
+							</div>
+
+						</div>
+
+						<!--Save Button-->
+						
+						<div class="grid grid-vertical align-right p-right--xsmall p-left--xsmall" style="display: flex;align-items: center;margin-top: 5px;">
+							<input style="width: 100px;background-color: #b51800;" type="submit" name="submit" aria-labelledby="shortcut"
+								ng-disabled="data.menu || data.requesting || controls.$invalid || !data.online"
+								class="button primary-button Droid addNote"
+								tabindex="{{data.menu || data.requesting?'-1':$index}}" value="Save"
+								ng-click="controls.$valid && focused && data.online && saveNoteButton($event,closeWindow)"
+								ng-focus="focused = true" ng-blur="focused = false"/>
+								<label for="submit" id="shortcut" class="label p-bottom--xxsmall"
+								ng-class="{fade:data.menu}" aria-hidden="true">alt+return</label>
+
+						</div>
+
+					</div>
+
+					<!--Actions Menu-->
+				</form>
+			</div>
+			<div class="p-xsmall" ng-controller="butterController" box-butter aria-live="polite"></div>
+			<!--Frame-->
+		</main>
+		<!--Auth Controller-->
+	</div>
+
+</body>
+
+</html>

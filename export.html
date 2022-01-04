@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!--
+ * Author: Owen Schoppe <citable.extension@gmail.com>
+ * Printable and Citable by Owen Schoppe is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+-->
+<html lang="en">
+
+<head>
+	<title>Citable</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="Description" content="Export Google Spreadsheets in .bib format for Zotero.">
+	<link rel="stylesheet" type="text/css" href="/css/landscape.css" media="print">
+	<link rel="stylesheet" type="text/css" href="/css/portrait.css" media="print">
+	<link rel="stylesheet" type="text/css" href="/css/index.css" media="all">
+	<link rel="stylesheet" type="text/css" href="/css/print.css" media="print">
+	<link rel="stylesheet" type="text/css" href="/css/view.css" media="screen">
+
+	<script type="text/javascript" src="js/FileSaver.min.js"></script>
+	<script type="text/javascript" src="js/util.js"></script>
+	<script type="text/javascript" src="js/gdocs.js"></script>
+	<script type="text/javascript" src="js/printexport.js"></script>
+	<script type="text/javascript" src="js/exportAPA.js"></script>
+	<script type="text/javascript" src="js/exportChicago.js"></script>
+	<script type="text/javascript" src="js/exportMLA.js"></script>
+	<script type="text/javascript" src="js/exportBibtex.js"></script>
+	<script type="text/javascript" src="js/export.js"></script>
+	<script type="text/javascript" src="js/analytics.js"></script>
+</head>
+
+<body>
+	<main>
+		<div id="controls-wrapper" class="scrollable scrollable-y panel">
+			<div id="controls" class="controls p-medium">
+				<h1 id="page-title" class="page-title m-bottom--small">Export</h1>
+				<div id="display" class="m-bottom--small">
+					<div id="butter" class="butter pam hidden m-bottom--small" aria-live="polite"></div>
+					<div id="total" class=""></div>
+				</div>
+				<div id="button-wrapper" class="grid">
+					<button id="print-button" class="button primary-button m-right--xsmall">Download</button>
+					<button id="cancel-button" class="button secondary-button right">Cancel</button>
+				</div>
+				<div class="divider m-vertical--large"></div>
+				<div class="p-left--small grid grid-vertical">
+					<label for="format" class="label p-bottom--xxsmall">Citation Format</label>
+					<select name="format" id="format">
+						<option value="apa">APA</option>
+						<option value="chicago">Chicago</option>
+						<option value="mla">MLA</option>
+						<option value="bibtex">BibTeX</option>
+					</select>
+					<div id="instructions">
+
+					</div>
+				</div>
+			</div>
+			<div id="control-shadow"></div>
+		</div>
+		<div class="scrollable grow grid grid-vertical">
+			<div id="loading" class="page loading portrait"><img src="css/img/loading.gif" height="16" width="16" title="Loading Document" alt="Loading Document" /></div>
+			<div id="output"></div>
+		</div>
+	</main>
+</body>
+
+</html>
