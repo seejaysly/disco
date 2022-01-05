@@ -1,22 +1,18 @@
-# Citable v2.3
- By Owen Schoppe
+# Disco v.0.0.6
+By Chris Jennings (based on code by Owen Schoppe)
 
-## Save citable quotes and notes in Google spreadsheets.
+## Save Disco quotes and notes in Google spreadsheets.
 
-Sick of manually tracking sources when collecting quotes? For students, researchers, and other professionals who do secondary research, Citable simplifies collecting quotes, notes and other data points along with the additional reference information needed to make a web citation.
+Use Disco to save text from web-based articles and save them to Google Sheets. This extension provides an information tracking system for students, researchers, and other professionals who do secondary research, Disco simplifies the collection of quotes, comments, and other metadata needed to make a web citation.
 
-Notes are saved in a spreadsheet in your Google Docs to enable collaboration with colleagues and rigorous analysis of the collected notes. To collaborate online, simply share the spreadsheet.
+"Discos" (or discoveries) are saved to a Google Sheet in a spreadsheet, which enables online collaboration with others.
 
-Collaborate using Post-its? Citable includes a printing template to simplify printing notes directly onto Post-its for easy offline collaboration.
+Disco is secure and suitable for work. All discos are securely transmitted only between the specified Google account and your computer. Disco maintains your privacy.
 
-Citable provides enhanced printing for Google spreadsheets. Print each row one a single sticky and select which columns to include.
-
-Citable is secure and suitable for work. All notes are securely transmitted only between the specified Google account and your computer. Citable maintains your privacy.
-
-- Select some text before clicking Citable to quickly create a note.
-- Citable automatically saves the page title, url, and date.
-- Automatically saves the author of the current article on most news sites.
-- Add tags to organize notes and accelerate analysis.
+- Select some text before clicking the Disco extension icon to quickly create a note.
+- Disco automatically saves the page title, url, and date, as well as the author on most news sites.
+- You can manually add tags to organize notes and accelerate analysis.
+- You can manually add comments to help contextualize the content collected.
 - Create new spreadsheets on the fly.
 - Spreadsheets are stored in a Google Drive folder, Citable_Documents.
 - Collaborate simply by sharing documents and adding them to your Citable_Documents folder.
