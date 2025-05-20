@@ -1,5 +1,5 @@
 /* jshint ignore:start */
-var _AnalyticsCode = 'UA-30552255-1';
+/*var _AnalyticsCode = 'UA-30552255-1';
 
 (function (i, s, o, g, r, a, m) {
     i['GoogleAnalyticsObject'] = r;
@@ -28,10 +28,10 @@ ga('send', 'pageview');
 window.onerror = function (message, source, lineno, colno, error) {
     console.log('Caught Error', message, source, lineno, colno, error);
     ga('send', 'event', 'Error', source, `${message}, ${lineno}, ${colno}`);
-};
+};*/
 /* jshint ignore:end */
 
-function initAnalytics(response) {
+/*function initAnalytics(response) {
     if (response.analytics != undefined) {
         window['ga-disable-UA-30552255-1'] = !response.analytics;
     }
@@ -55,4 +55,4 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
     }
 });
 
-chrome.storage.sync.get('analytics', initAnalytics);
+chrome.storage.sync.get('analytics', initAnalytics);*/
