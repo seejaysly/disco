@@ -3,7 +3,7 @@
   "name": "Disco",
   "short_name": "Disco",
   "description": "Save Disco captures from the web into Google Sheets.",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "minimum_chrome_version": "88",
   "background": {
     "service_worker": "background.js"
