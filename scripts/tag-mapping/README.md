@@ -15,3 +15,19 @@ for tags and `dupe-<n>` for duplicate merges). The import applies proposals plus
   its discos' other tags spread across DIG areas (`neff`), share in its own area, and top areas.
   Clear subjects scored ~1.1 to 1.8; themes like death and power ~7.7 to 7.9; reality and time
   scored mid-pack as two-field bridges. See the feed algorithm doc, "Themes, worked out behind the scenes".
+
+## Source vs. tags rule (agreed with CJ, Oct 15)
+
+The source says where a passage came from; tags say what it's about.
+
+- A book's title and author live on the source only. At import, drop any tag on a disco that names
+  that disco's own source (title) or the source's author. The disco stays findable under the book,
+  and the feed reads the author through the source.
+- Keep a person or work tag when it's the subject: an article about Carlton McCoy, a critic on
+  *Dracula*, or a quote whose speaker isn't the source's author (Einstein quoted in someone else's
+  article).
+- Affects 5 of the 62 single-tag suggestions (14348 Daring Greatly; 15314, 15316, 15317, 15318
+  Getting More) and the Coda book tags that match a disco's own source (Getting More's 16 are the
+  largest group). Tag rows that end up with no discos still import as topics, so a later disco
+  about that book can use them.
+- Capture tools apply the same rule: tag suggestions leave out the source's own title and author.
