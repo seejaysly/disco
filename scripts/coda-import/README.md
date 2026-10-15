@@ -14,3 +14,11 @@ imported guides are rebuilt from Coda. Run it once more right before cutover (Ph
 
 `supabase/migrations/20261015210000_coda_import.sql` (staging table and apply function) contains
 DELETE statements, so CJ runs it in the Supabase SQL editor rather than Claude.
+
+## Personal tags
+
+Tags for people in the user's own life (`PERSONAL` in build.py, confirmed with the user) are created
+private to the importing user and marked personal (set `CODA_USER_ID`). The runner calls
+`private.coda_import_personal(batch, email)` before `coda_import_apply`. Oct 15: "Anu" (CJ's wife)
+had first been imported as the Sumerian god; CJ's 5 discos, guide and paused topic were moved to the
+personal topic. The shared "Anu" (Sumerian god) topic stays in the catalog, unused by CJ.

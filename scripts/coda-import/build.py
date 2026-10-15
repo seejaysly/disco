@@ -57,7 +57,7 @@ label_ref = {}       # lower(label or alias) -> ref
 ref_label = {}
 
 def ref_parent(ref):
-    if ref.startswith('slug:'): return topics[ref[5:]].get('parent_id')
+    if ref.startswith('slug:'): return topics.get(ref[5:], {}).get('parent_id')
     return DIG_PARENT.get(ref)
 
 def add_alias(alias, ref):
@@ -82,6 +82,17 @@ for tid, lab in DIG_LABEL.items():
     label_ref.setdefault(lab.lower(), tid)
 
 COLLECTIONS = {'quotes', 'vocabulary', 'wines to try', 'recipes'}
+# Tags for people in the user's own life: private to them, never shared or used to pick feed topics.
+# Confirmed with the user before adding a name here.
+PERSONAL = {'anu': 'person'}
+USER_ID = os.environ.get('CODA_USER_ID', '')
+personal_topics = []
+def personal_topic(label, kind):
+    if not USER_ID: raise SystemExit('set CODA_USER_ID to the importing user id (personal tags are owned by them)')
+    slug = slugify(label) + '-' + hashlib.md5(USER_ID.encode()).hexdigest()[:8]
+    personal_topics.append(dict(slug=slug, label=label, kind=kind))
+    ref = 'slug:' + slug; ref_label[ref] = label
+    return ref
 NOTE_TAGS = {'cj ideas', 'cj thoughts', 'cj quotes'}
 
 # spelling fixes and merges from the review page
@@ -118,6 +129,7 @@ pending_by = []
 for r in order:
     name = name_by_row[r]
     if name.lower() in NOTE_TAGS: tag_ref[r] = None; continue
+    if name.lower() in PERSONAL: tag_ref[r] = personal_topic(name, PERSONAL[name.lower()]); continue
     canon = merge_into.get(name.lower())
     if canon:
         cr = row_by_name.get(canon.lower())
@@ -313,7 +325,7 @@ for r, d in D.items():
     dtags[r] = refs
 
 for ref in [x for v in dtags.values() for x in v]:
-    if ref.startswith('slug:'): ref_label.setdefault(ref, topics[ref[5:]]['label'])
+    if ref.startswith('slug:') and ref[5:] in topics: ref_label.setdefault(ref, topics[ref[5:]]['label'])
 
 # ---------------------------------------------------------------- guides
 guides = defaultdict(list)   # topic ref -> [(group, rank, item)]
@@ -413,13 +425,16 @@ for line in open(f'{DATA}/dig_cj.txt', encoding='utf-8'):
             parent = next((t for t, l in DIG_LABEL.items() if l == sub and DIG_LABEL.get(DIG_PARENT.get(t)) == area), None)
         ref = new_topic(label, 'subject', parent_id=parent)
     dig.append(ref)
-paused = [tag_ref[r] for r, t in TAGS.items() if t['exclude'] and tag_ref.get(r) and tag_ref[r] not in dig]
+personal_refs = {'slug:' + t['slug'] for t in personal_topics}
+paused = [tag_ref[r] for r, t in TAGS.items() if t['exclude'] and tag_ref.get(r) and tag_ref[r] not in dig
+          and tag_ref[r] not in personal_refs]
 
 # ---------------------------------------------------------------- write parts
 used_refs = {x for v in dtags.values() for x in v} | set(guide_out) | set(dig) | set(paused) | \
             {e['topic'] for e in edition_items if e['topic']}
 for (a, b, _) in list(tlinks): used_refs |= {a}
 payload = dict(
+    personal_topics=personal_topics,
     topics=list(topics.values()),
     aliases=[dict(alias=a, ref=r) for a, r in sorted(aliases)],
     links=[dict(ref=a, related=b, relation=c) for a, b, c in sorted(tlinks)],
