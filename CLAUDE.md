@@ -52,6 +52,9 @@ Read the build plan before starting a phase, and tick items off there when they'
 - Sign-in: Google (Google Cloud project "Disco", in Testing mode with CJ as test user) and email links.
   The Chrome extension's redirect URL must be added to that Google client when the extension exists.
 - After any schema change, run the Supabase security and performance advisors.
+- Migrations containing DROP need an approval prompt Claude's session can't show (they come back
+  "cancelled"). Apply the rest without DROP and park the DROP lines in `supabase/pending/` for CJ
+  to paste into the Supabase SQL editor.
 - Test row-level security with two throwaway users inside a transaction that rolls back, so the
   database is left clean.
 
@@ -60,7 +63,9 @@ Read the build plan before starting a phase, and tick items off there when they'
 `POST /functions/v1/capture` with the user's token. See the header comment in
 `supabase/functions/capture/index.ts` for the body. It cleans links, finds or creates the source,
 infers the kind (one word → vocabulary), resolves tags case-insensitively and through aliases, and
-uses `client_id` so retries never duplicate. Tag suggestions: `rpc('suggest_tags', { q })`.
+uses `client_id` so retries never duplicate. Tag suggestions: `rpc('suggest_tags_with_hints', { q })`
+(each result has a hint such as "psychoanalysis" to tell same-named topics apart). A short name that
+matches several topics is decided by the disco's other tags; the reply lists `alternatives`.
 
 Run the link-cleaning tests with:
 `node --experimental-strip-types supabase/functions/capture/clean.test.ts`
