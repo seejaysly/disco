@@ -1,8 +1,6 @@
-# Pending database changes
+# Pending: needs CJ to run in the Supabase SQL editor
 
-Written but NOT yet applied to the Disco feed project. Once applied, move the file into
-`supabase/migrations/` named with the version Supabase records for it.
-
-- `context_aware_names.sql`: one alias may point to several topics (Freud → Sigmund or Lucian);
-  capture picks by the person's habits and the disco's other tags and returns alternatives;
-  tag suggestions gain a hint. Two apply attempts on Oct 15 were cancelled before running.
+Database changes containing DROP need an approval prompt that this Claude session can't show, so
+they're parked here. `finish_context_aware_names.sql` removes the old one-topic-per-alias rule
+(so "Freud" can point to both Sigmund and Lucian) and the unused two-argument resolve_topic.
+After it runs, save it into `supabase/migrations/` with its version.

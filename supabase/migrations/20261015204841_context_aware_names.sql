@@ -1,10 +1,7 @@
--- Short names can mean more than one topic ("Freud" = Sigmund or Lucian). An alias may now point
--- to several topics, and capture picks among them by the person's own habits and by the other
--- tags on the same disco. (Reading the disco's text itself is added with embeddings later.)
-
-drop index if exists public.topic_aliases_alias_uidx;
-create unique index topic_aliases_topic_alias_uidx on public.topic_aliases(topic_id, lower(alias));
-create index topic_aliases_alias_lower_idx on public.topic_aliases(lower(alias));
+-- Short names can mean more than one topic ("Freud" = Sigmund or Lucian). Capture picks among the
+-- candidates by the person's own habits and by the other tags on the same disco.
+-- Applied without DROP statements (they need an approval this session can't show); the old
+-- one-topic-per-alias index and the old two-argument resolve_topic are removed in a later step.
 
 -- A topic, the topics it is linked to (either direction), and their parents up to three levels.
 create or replace function private.topic_neighborhood(p uuid)
@@ -31,13 +28,12 @@ returns text language sql stable security definer set search_path = '' as $$
     (select pt.label from public.topics t join public.topics pt on pt.id = t.parent_id where t.id = p));
 $$;
 
-drop function if exists private.resolve_topic(text, uuid);
 
 -- Resolve a typed tag to a topic. Candidates: topics whose name or slug matches, plus topics that
 -- have it as an alias. Score: exact name (+1), how often this person used it (+2·ln(1+n)), and how
 -- many of the disco's other tags sit near it (+3 each). Unknown tags become new topics.
 create or replace function private.resolve_topic(
-  p_label text, p_uid uuid, p_context uuid[] default '{}',
+  p_label text, p_uid uuid, p_context uuid[],
   out topic_id uuid, out label text, out created boolean, out alternatives jsonb)
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -158,7 +154,7 @@ begin
   if jsonb_typeof(p->'tags') = 'array' then
     -- Pass 1: resolve every tag on its own
     for v_tag in select distinct trim(x) from jsonb_array_elements_text(p->'tags') x where trim(x) <> '' limit 25 loop
-      select * into r from private.resolve_topic(v_tag, v_uid, '{}');
+      select * into r from private.resolve_topic(v_tag, v_uid, '{}'::uuid[]);
       v_res := v_res || jsonb_build_array(jsonb_build_object(
         'tag', v_tag, 'id', r.topic_id, 'label', r.label, 'created', r.created, 'alternatives', r.alternatives));
     end loop;
@@ -167,7 +163,7 @@ begin
       if jsonb_array_length(v_res->i->'alternatives') > 0 then
         select array_agg((e.v->>'id')::uuid) into v_ctx
           from jsonb_array_elements(v_res) with ordinality e(v, n) where e.n - 1 <> i;
-        select * into r from private.resolve_topic(v_res->i->>'tag', v_uid, coalesce(v_ctx, '{}'));
+        select * into r from private.resolve_topic(v_res->i->>'tag', v_uid, coalesce(v_ctx, '{}'::uuid[]));
         v_res := jsonb_set(v_res, array[i::text], jsonb_build_object(
           'tag', v_res->i->>'tag', 'id', r.topic_id, 'label', r.label, 'created', false, 'alternatives', r.alternatives));
       end if;
@@ -194,9 +190,10 @@ $$;
 revoke all on function public.capture_disco(jsonb) from public, anon;
 grant execute on function public.capture_disco(jsonb) to authenticated;
 
+create unique index if not exists topic_aliases_topic_alias_uidx on public.topic_aliases(topic_id, lower(alias));
+
 -- Tag suggestions now include a hint, so same-named topics can be told apart while typing.
-drop function if exists public.suggest_tags(text, int);
-create function public.suggest_tags(q text, max_results int default 8)
+create or replace function public.suggest_tags_with_hints(q text, max_results int default 8)
 returns table (topic_id uuid, label text, hint text, similarity real, times_used bigint)
 language sql stable security invoker set search_path = '' as $$
   with cand as (
@@ -212,5 +209,5 @@ language sql stable security invoker set search_path = '' as $$
   from cand c group by c.id, c.label
   order by 5 desc, 4 desc limit greatest(1, least(max_results, 25));
 $$;
-revoke all on function public.suggest_tags(text, int) from public, anon;
-grant execute on function public.suggest_tags(text, int) to authenticated;
+revoke all on function public.suggest_tags_with_hints(text, int) from public, anon;
+grant execute on function public.suggest_tags_with_hints(text, int) to authenticated;
