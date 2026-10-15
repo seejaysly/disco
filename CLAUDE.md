@@ -17,7 +17,7 @@ Read the build plan before starting a phase, and tick items off there when they'
 
 | Folder | What it is |
 | --- | --- |
-| `legacy/extension-v1/` | The current Disco capture extension (saves to Google Sheets → Coda). Kept for reference. |
+| `legacy/extension-v1/` | The current Disco capture extension (saves to Google Sheets → Coda). Kept for reference; the untouched original is on branch `v1-final`. |
 | `extension/` | The v2 Chrome extension (Manifest V3), saving to Supabase. Phase 3. |
 | `web/` | The reader web app, hosted on Netlify. Phase 5. |
 | `supabase/migrations/` | Every database change, in order. Never edit an applied migration; add a new one. |

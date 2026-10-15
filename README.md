@@ -9,6 +9,6 @@ around what you're curious about and haven't covered yet.
 | `web/` | Reader web app (planned) |
 | `supabase/` | Database migrations, the capture endpoint, and the DIG topic taxonomy |
 | `scripts/` | Data copy and maintenance scripts |
-| `legacy/extension-v1/` | The original Disco extension, which saves to Google Sheets (tag `v1-final`) |
+| `legacy/extension-v1/` | The original Disco extension, which saves to Google Sheets (snapshot branch `v1-final`) |
 
 See `CLAUDE.md` for how the project is organized and the rules for working on it.
