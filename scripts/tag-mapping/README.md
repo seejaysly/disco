@@ -8,3 +8,10 @@
 
 CJ's review decisions live in the review page's database (collection `decisions`, keyed `t<rowid>`
 for tags and `dupe-<n>` for duplicate merges). The import applies proposals plus those decisions.
+- `single_tag_disco_suggestions.json`: extra tags proposed for the 62 discos that carried one tag
+  (excluding vocabulary, CJ ideas/thoughts and the 197 guide headers stored as discos in Coda).
+  CJ's edits: review page decisions keyed `d<disco rowid>` with `drop` and `add` lists.
+- `theme_spread_test_2026-10-15.json`: first theme test. For each tag with 5+ discos, how widely
+  its discos' other tags spread across DIG areas (`neff`), share in its own area, and top areas.
+  Clear subjects scored ~1.1 to 1.8; themes like death and power ~7.7 to 7.9; reality and time
+  scored mid-pack as two-field bridges. See the feed algorithm doc, "Themes, worked out behind the scenes".
