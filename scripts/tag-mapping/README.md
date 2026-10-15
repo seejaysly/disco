@@ -51,3 +51,13 @@ beneath it.
 - Review page decisions for single-tag discos can also carry `dropHas: true` (drop the tag the
   disco already had, because a narrower one covers it) and `replaceHas` (swap it, e.g. the
   "Literary Studies of Critical Thought" discos: art movements → literary movements).
+
+## Decisions from CJ, Oct 15 (applied at import)
+
+- "artistic styles" (new) and "art movements" are separate topics. Art movements are the formal
+  historical movements tied to artists and works (DIG 01.02.1). Artistic styles are the design side
+  derived from them, including contemporary styles drawn from a historical movement: placed under
+  Arts & Design › Design (01.04), with a "related" link to art movements. Neither is dropped as a
+  broader version of the other.
+- "American government" and "US government" are one topic: "US government" is the label,
+  "American government" an alias.
