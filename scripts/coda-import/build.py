@@ -446,7 +446,7 @@ def flush(kind, chunk):
     body = '[' + ','.join(chunk) + ']'
     assert '$J$' not in body
     n += 1
-    sql = f"insert into private.coda_staging (batch, part, kind, payload) values ('{BATCH}', {n}, '{kind}', $J${body}$J$::jsonb);"
+    sql = f"insert into private.coda_staging (batch, part, kind, payload) values ('{BATCH}', {n}, '{kind}', $J${body}$J$::jsonb) on conflict (batch, part) do update set kind = excluded.kind, payload = excluded.payload, loaded_at = now();"
     open(f'{OUT}/part-{n:03d}.sql', 'w', encoding='utf-8').write(sql)
 for k, v in payload.items(): emit(k, v)
 summary = {k: (len(v) if isinstance(v, list) else 1) for k, v in payload.items()}
