@@ -41,7 +41,7 @@ beneath it.
 
 - At import, drop a broad tag from a disco when the same disco also has a tag that sits beneath it
   (e.g. "art" next to "art movements"). The broad tag stays on discos where it's the only fit.
-- Suggestions for literary movement discos use "literary movements" (DIG 02.02.5), the
+- Literary movement discos get "literary movements" (DIG 02.02.5) and keep "art movements" (CJ, Oct 15: one timeline in both guides); the
   counterpart of "art movements" (01.02.1), instead of "literature".
 - Capture tools suggest the most specific matching topic and don't suggest a parent of a tag
   already on the disco.

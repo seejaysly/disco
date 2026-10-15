@@ -303,15 +303,18 @@ for r, d in D.items():
         refs = [x for x in refs if x != has]
         if dec.get('replaceHas'):
             new = ref_of(dec['replaceHas']); refs.append(new); replaced[r] = (has, new)
+            # CJ, Oct 15: literary passages keep Art movements too, so his art timeline stays whole
+            if has == CODE2ID['01.02.1']: refs.append(has)
         elif not dec.get('dropHas'): refs.append(has)
         for t in s['add']:
             if t not in dec.get('drop', []): refs.append(ref_of(t))
         for t in dec.get('add', []): refs.append(ref_of(t))
         if None in refs: raise SystemExit(f'unresolved tag on disco {r}: {s} {dec}')
     refs = list(dict.fromkeys(x for x in refs if x))
-    # the "Literary Studies of Critical Thought" passages are literary movements, not art movements
+    # the "Literary Studies of Critical Thought" passages are literary movements as well as art
+    # movements (CJ, Oct 15): both tags, and both guides list them in his Coda timeline order
     if det.get('source_title') == 'Literary Studies of Critical Thought' and CODE2ID['01.02.1'] in refs:
-        refs = [CODE2ID['02.02.5'] if x == CODE2ID['01.02.1'] else x for x in refs]
+        refs.append(CODE2ID['02.02.5'])
         replaced[r] = (CODE2ID['01.02.1'], CODE2ID['02.02.5'])
         refs = list(dict.fromkeys(refs))
     # rule 1: the disco's own book and author live on the source, not in tags
@@ -344,11 +347,13 @@ for l in LINKS:
     if l['disco'] in headers:
         item['header'] = D[l['disco']]['summary'] or D[l['disco']]['text']
     elif l['disco'] in dtags:
-        target = ref
-        if l['disco'] in replaced and replaced[l['disco']][0] == ref: target = replaced[l['disco']][1]
-        # a disco stays in its author's or book's guide even though the tag itself lives on the source
-        if target not in dtags[l['disco']] and (l['disco'], target) not in by_source: continue
-        item['disco'] = str(l['disco']); ref = target
+        targets = [ref]
+        if l['disco'] in replaced and replaced[l['disco']][0] == ref: targets.append(replaced[l['disco']][1])
+        for target in targets:
+            # a disco stays in its author's or book's guide even though the tag itself lives on the source
+            if target not in dtags[l['disco']] and (l['disco'], target) not in by_source: continue
+            guides[target].append((l['tag'], rank, dict(item, disco=str(l['disco']))))
+        continue
     else: continue
     guides[ref].append((l['tag'], rank, item))
 guide_out = {}
