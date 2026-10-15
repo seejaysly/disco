@@ -4,7 +4,7 @@
 -- also the final re-copy at cutover). Until cutover Coda is the source of truth: discos deleted
 -- in Coda are removed here, re-tagged discos get Coda's tags, and imported guides are rebuilt.
 
-create table private.coda_staging (
+create table if not exists private.coda_staging (
   batch text not null,
   part int not null,
   kind text not null,
@@ -34,6 +34,7 @@ begin
   select id into v_uid from auth.users where lower(email) = lower(p_email);
   if v_uid is null then raise exception 'no user with email %', p_email; end if;
 
+  drop table if exists pg_temp.imp, pg_temp.src_map, pg_temp.art_map, pg_temp.disco_map, pg_temp.want;
   create temp table imp on commit drop as
     select kind, e.value as j from private.coda_staging s, jsonb_array_elements(s.payload) e
      where s.batch = p_batch;
@@ -80,8 +81,8 @@ begin
   end loop;
 
   -- articles (shared catalog), keyed by md5 of the cleaned URL
-  insert into public.articles (url, url_hash, headline, source_id, published_at)
-  select j->>'url', j->>'hash', j->>'headline', m.id, (j->>'published')::timestamptz
+  insert into public.articles (url, headline, source_id, published_at)  -- url_hash is generated: md5(url)
+  select j->>'url', j->>'headline', m.id, (j->>'published')::timestamptz
     from imp left join src_map m on m.key = j->>'source_key' where kind = 'articles'
   on conflict (url_hash) do update set headline = coalesce(public.articles.headline, excluded.headline),
     source_id = coalesce(public.articles.source_id, excluded.source_id),
