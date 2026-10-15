@@ -17507,13 +17507,14 @@
  {
   "rowid": 11187,
   "tag": "class",
-  "rel": "same",
-  "code": "17.07.5",
+  "rel": "under",
+  "code": "19.05",
   "conf": "high",
   "count": 2,
   "exclude": false,
-  "path": "Society & Politics › Social issues and inequality › Social class",
-  "kind": "subject"
+  "path": "Style & Beauty",
+  "kind": "subject",
+  "note": "\"classy\": sophistication and style, not social class (CJ, Oct 15)"
  },
  {
   "rowid": 11188,

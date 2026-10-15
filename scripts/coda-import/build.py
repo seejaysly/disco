@@ -185,6 +185,8 @@ if 'franz kafka' not in label_ref and 'kafka' not in label_ref:
 for wref, person in pending_by:
     pref = label_ref.get(person.lower()) or label_ref.get(person.split()[-1].lower())
     if pref and pref != wref: tlinks.add((wref, pref, 'by'))
+# "class" means classiness (CJ, Oct 15): its own topic, related to social class
+tlinks.add((tag_ref[row_by_name['class']], CODE2ID['17.07.5'], 'related'))
 # artistic styles: design side of art movements
 tlinks.add((label_ref['artistic styles'], CODE2ID['01.02.1'], 'related'))
 # US government / American government are one topic
