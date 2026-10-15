@@ -32,3 +32,16 @@ The source says where a passage came from; tags say what it's about.
   largest group). Tag rows that end up with no discos still import as topics, so a later disco
   about that book can use them.
 - Capture tools apply the same rule: tag suggestions leave out the source's own title and author.
+
+## Specific tags, broad views (agreed with CJ, Oct 15)
+
+Tag with the most specific topic that fits; zooming out comes from the DIG tree, not from extra
+broad tags. Viewing "Art history" or "Arts & Design" includes every disco tagged with a topic
+beneath it.
+
+- At import, drop a broad tag from a disco when the same disco also has a tag that sits beneath it
+  (e.g. "art" next to "art movements"). The broad tag stays on discos where it's the only fit.
+- Suggestions for literary movement discos use "literary movements" (DIG 02.02.5), the
+  counterpart of "art movements" (01.02.1), instead of "literature".
+- Capture tools suggest the most specific matching topic and don't suggest a parent of a tag
+  already on the disco.
