@@ -276,6 +276,7 @@ NOTE_ROWS = {r for r, t in TAGS.items() if t['name'].lower() in NOTE_TAGS}
 headers, discos, dtags, skipped = [], {}, {}, defaultdict(int)
 replaced = {}    # disco -> (old ref, new ref) for guide moves
 dropped_broad = []
+by_source = set()   # (disco, topic) dropped because the topic is the disco's own book or author
 for r, d in D.items():
     tags = [l['tag'] for l in links_by_disco[r]]
     if d['source'] in HEADER_SRC or (not tags and S.get(d['source'], {}).get('title') == '(headers)'):
@@ -314,6 +315,9 @@ for r, d in D.items():
     # rule 1: the disco's own book and author live on the source, not in tags
     own = {norm(det.get('source_title')), norm(det.get('author'))} - {''}
     before = len(refs)
+    own_refs = [x for x in refs if norm(ref_label.get(x) or topics.get(x[5:], {}).get('label', '')) in own
+                or any(norm(a) in own for a, rr in aliases if rr == x)]
+    by_source.update((r, x) for x in own_refs)
     refs = [x for x in refs if norm(ref_label.get(x) or topics.get(x[5:], {}).get('label', '')) not in own
             and not any(norm(a) in own for a, rr in aliases if rr == x)]
     skipped['tags dropped: own book or author'] += before - len(refs)
@@ -340,7 +344,8 @@ for l in LINKS:
     elif l['disco'] in dtags:
         target = ref
         if l['disco'] in replaced and replaced[l['disco']][0] == ref: target = replaced[l['disco']][1]
-        if target not in dtags[l['disco']]: continue
+        # a disco stays in its author's or book's guide even though the tag itself lives on the source
+        if target not in dtags[l['disco']] and (l['disco'], target) not in by_source: continue
         item['disco'] = str(l['disco']); ref = target
     else: continue
     guides[ref].append((l['tag'], rank, item))
