@@ -23,9 +23,10 @@ The source says where a passage came from; tags say what it's about.
 - A book's title and author live on the source only. At import, drop any tag on a disco that names
   that disco's own source (title) or the source's author. The disco stays findable under the book,
   and the feed reads the author through the source.
-- Keep a person or work tag when it's the subject: an article about Carlton McCoy, a critic on
-  *Dracula*, or a quote whose speaker isn't the source's author (Einstein quoted in someone else's
-  article).
+- Keep a person or work tag whenever it isn't the disco's own source: the subject (an article about
+  Carlton McCoy), named in the passage (Kafka's *Metamorphosis* cited as an example of absurdism), or
+  a quote whose speaker isn't the source's author (Einstein quoted in someone else's article).
+  Tagging a work also files the disco under its creator through the work's `by` link.
 - Affects 5 of the 62 single-tag suggestions (14348 Daring Greatly; 15314, 15316, 15317, 15318
   Getting More) and the Coda book tags that match a disco's own source (Getting More's 16 are the
   largest group). Tag rows that end up with no discos still import as topics, so a later disco
