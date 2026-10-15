@@ -45,3 +45,9 @@ beneath it.
   counterpart of "art movements" (01.02.1), instead of "literature".
 - Capture tools suggest the most specific matching topic and don't suggest a parent of a tag
   already on the disco.
+- Broad tags are placed *as* their DIG area, not beneath it, so viewing them includes everything
+  below: art = Arts & Design, literature = Books & Writing, psychology = Psychology,
+  wine = Wine, beer, and spirits, cooking = Home cooking.
+- Review page decisions for single-tag discos can also carry `dropHas: true` (drop the tag the
+  disco already had, because a narrower one covers it) and `replaceHas` (swap it, e.g. the
+  "Literary Studies of Critical Thought" discos: art movements → literary movements).
