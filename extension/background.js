@@ -40,8 +40,11 @@ async function flushAll() {
   await flushSheetQueue().catch(() => {});
 }
 
-const setPending = (data) =>
-  chrome.storage.session.set({ [PENDING_KEY]: { id: crypto.randomUUID(), at: Date.now(), ...data } });
+async function setPending(data) {
+  const pending = { id: crypto.randomUUID(), at: Date.now(), ...data };
+  await chrome.storage.session.set({ [PENDING_KEY]: pending });
+  return pending;
+}
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -82,13 +85,38 @@ async function grabSelection(tab, fallbackText, fromShortcut = false) {
       : { kind: 'none' };
   }
   if (data.kind === 'video') {
-    data.tabId = tab.id;
-    // Opening the side panel narrows the page and YouTube redraws its transcript from the top;
-    // bring the highlighted lines back into view once the page has settled.
-    const at = data.end ?? data.start;
-    setTimeout(() => returnToTranscript(tab.id, at), 600);
+    await videoWithStill(tab, data);
+    return;
   }
   await setPending(data);
+}
+
+// Show the video moment right away, then add a still of the video at that moment.
+async function videoWithStill(tab, data) {
+  data.tabId = tab.id;
+  const pending = await setPending({ ...data, frameLoading: true });
+  await wait(450); // let the page settle after the side panel opens
+  let frame = null;
+  try { frame = await grabFrame(tab, data.start); } catch {}
+  // Opening the side panel narrows the page and YouTube redraws its transcript from the top;
+  // bring the highlighted lines back into view.
+  if (data.lines?.length) returnToTranscript(tab.id, data.end ?? data.start);
+  await setPending({ ...pending, frameLoading: false, frameData: frame?.dataUrl || null, frameWidth: frame?.width, frameHeight: frame?.height });
+}
+
+// A still of the page's main video at a given second. If the video is elsewhere, it jumps there
+// for a moment and is then put back exactly as it was (time and play/pause).
+async function grabFrame(tab, seconds) {
+  const [res] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: seekForStill, args: [seconds] });
+  const info = res?.result;
+  if (!info?.rect) return null;
+  try {
+    return await snapshot(tab, info.rect, info.viewportWidth, 960);
+  } finally {
+    if (info.restore) {
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: restoreVideo, args: [info.restore] }).catch(() => {});
+    }
+  }
 }
 
 // Scroll YouTube's transcript back to the line at (or just before) a time in seconds.
@@ -168,12 +196,13 @@ async function finishArea(tab, msg) {
 async function grabVideo(tab, srcUrl) {
   let data = null;
   try { data = await runInPage(tab.id, { mode: 'video', src: srcUrl }); } catch {}
-  await setPending(data && data.kind === 'video' ? data : { kind: 'none' });
+  if (data && data.kind === 'video') await videoWithStill(tab, data);
+  else await setPending({ kind: 'none' });
 }
 
 // ---------- image helpers ----------
 
-async function snapshot(tab, rect, viewportWidth) {
+async function snapshot(tab, rect, viewportWidth, maxSide = MAX_SIDE) {
   const shot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
   const blob = await (await fetch(shot)).blob();
   const bmp = await createImageBitmap(blob);
@@ -185,13 +214,13 @@ async function snapshot(tab, rect, viewportWidth) {
   crop.w = Math.min(bmp.width - crop.x, Math.round(rect.w * scale));
   crop.h = Math.min(bmp.height - crop.y, Math.round(rect.h * scale));
   if (crop.w < 4 || crop.h < 4) throw new Error('area too small');
-  return toJpeg(bmp, crop);
+  return toJpeg(bmp, crop, maxSide);
 }
 
-async function toJpeg(source, crop) {
+async function toJpeg(source, crop, maxSide = MAX_SIDE) {
   const bmp = source instanceof Blob ? await createImageBitmap(source) : source;
   const c0 = crop || { x: 0, y: 0, w: bmp.width, h: bmp.height };
-  const k = Math.min(1, MAX_SIDE / Math.max(c0.w, c0.h));
+  const k = Math.min(1, maxSide / Math.max(c0.w, c0.h));
   const w = Math.max(1, Math.round(c0.w * k));
   const h = Math.max(1, Math.round(c0.h * k));
   const canvas = new OffscreenCanvas(w, h);
@@ -412,6 +441,37 @@ async function readPage(opts) {
     return { kind: 'vocab', word: text, text, sentence: sentenceAround(range, text), ...contextAround(range), ...pageMeta() };
   }
   return { kind: 'text', text, ...contextAround(range), ...pageMeta() };
+}
+
+async function seekForStill(seconds) {
+  const vids = [...document.querySelectorAll('video')].filter((v) => v.duration > 0);
+  const v = vids.sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0];
+  if (!v) return null;
+  const rc = v.getBoundingClientRect();
+  const x = Math.max(0, rc.left), y = Math.max(0, rc.top);
+  const w = Math.min(innerWidth, rc.right) - x, h = Math.min(innerHeight, rc.bottom) - y;
+  if (w < 80 || h < 45) return null; // the player isn't on screen
+  let restore = null;
+  if (seconds != null && Math.abs(v.currentTime - seconds) > 2) {
+    restore = { time: v.currentTime, paused: v.paused };
+    v.pause();
+    await new Promise((r) => {
+      const t = setTimeout(r, 3000);
+      v.addEventListener('seeked', () => { clearTimeout(t); r(); }, { once: true });
+      v.currentTime = seconds;
+    });
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return { rect: { x, y, w, h }, viewportWidth: innerWidth, restore };
+}
+
+function restoreVideo(restore) {
+  const v = [...document.querySelectorAll('video')].filter((x) => x.duration > 0)
+    .sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0];
+  if (!v || !restore) return;
+  v.currentTime = restore.time;
+  if (!restore.paused) v.play().catch(() => {});
 }
 
 function scrollTranscriptTo(seconds) {

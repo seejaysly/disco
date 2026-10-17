@@ -48,6 +48,13 @@ async function start() {
 
 function handlePending(p) {
   if (!p || p.kind === 'none') { if (!cap || saving) showEmpty(); return; }
+  if (cap && cap.id === p.id && cap.kind === 'video') {
+    // The still of the video arrives a moment after the moment itself.
+    cap.frameLoading = !!p.frameLoading;
+    if (p.frameData) { cap.frameData = p.frameData; cap.frameWidth = p.frameWidth; cap.frameHeight = p.frameHeight; }
+    renderMain();
+    return;
+  }
   if (p.kind === 'area-wait') {
     $('wait-text').textContent = 'Drag a box around the part of the page you want to save. Press Esc to cancel.';
     show('wait');
@@ -106,6 +113,7 @@ function openCapture(p) {
     width: p.width, height: p.height, area: !!p.area, imageError: p.error || '',
     // video
     lines, start: p.start ?? (lines[0]?.t ?? 0), end: p.end ?? null, channel_id: p.channel_id || '', duration: p.duration || 0, tabId: p.tabId || null,
+    frameLoading: !!p.frameLoading, frameData: p.frameData || null, frameWidth: p.frameWidth, frameHeight: p.frameHeight,
     tags: [],
   };
   saving = false;
@@ -196,6 +204,10 @@ function renderMain() {
       n.textContent = 'No captions at this moment. Click to type what was said, or add a note.';
       box.append(n);
     }
+    $('video-still-wrap').hidden = !cap.frameData && !cap.frameLoading;
+    $('video-still').hidden = !cap.frameData;
+    if (cap.frameData) $('video-still').src = cap.frameData;
+    $('video-still-wait').hidden = !!cap.frameData;
     $('video-channel').textContent = cap.site_name || 'Video';
     $('video-title').textContent = cap.title || '';
     $('video-meta').textContent = [cap.published_at ? prettyDate(cap.published_at) : '', cap.duration ? `${Math.round(cap.duration / 60)} min` : '']
@@ -512,6 +524,7 @@ function buildBody() {
       quote: cap.edited ?? text, text_captured: text,
       channel_id: cap.channel_id || undefined,
       video: { start_seconds: cap.start, end_seconds: cap.end ?? undefined, caption_text: text },
+      image: cap.frameData ? { width: cap.frameWidth, height: cap.frameHeight, caption: `Still at ${hms(cap.start)}` } : undefined,
       details: cap.duration ? { duration_seconds: cap.duration } : undefined };
   }
   return { ...common, kind: 'highlight', quote: cap.edited ?? cap.text, text_captured: cap.text,
@@ -526,6 +539,8 @@ async function save() {
   if ($('tag-input').value.trim()) await addTyped();
   if (!$('did-you-mean').hidden) return; // let the user answer first
   if (cap.kind === 'image' && !cap.imageData) return;
+  // Give the video still a moment to arrive if it's on its way.
+  for (let i = 0; i < 30 && cap.kind === 'video' && cap.frameLoading; i++) await new Promise((r) => setTimeout(r, 100));
 
   saving = true;
   const btn = $('btn-save');
@@ -536,7 +551,7 @@ async function save() {
   const body = buildBody();
   let outcome;
   try {
-    outcome = await saveOrQueue(body, cap.kind === 'image' ? cap.imageData : null);
+    outcome = await saveOrQueue(body, cap.kind === 'image' ? cap.imageData : cap.kind === 'video' ? cap.frameData : null);
   } catch (e) {
     saving = false;
     btn.disabled = false;
@@ -568,7 +583,7 @@ async function save() {
     $('save-error').hidden = false;
   }
   // After a transcript save, ask the background to put the transcript back where you were.
-  const backTo = cap.kind === 'video' && cap.tabId && cap.lines.length > 1
+  const backTo = cap.kind === 'video' && cap.tabId && cap.lines.length
     ? { type: 'disco-return-to', tabId: cap.tabId, seconds: cap.end ?? cap.start } : null;
   setTimeout(async () => {
     if (cap && cap.id === savedId) {

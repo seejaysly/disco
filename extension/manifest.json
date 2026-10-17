@@ -3,7 +3,7 @@
   "name": "Disco (new)",
   "short_name": "Disco",
   "description": "Highlight anything on the web, right-click, and save it to Disco.",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "minimum_chrome_version": "116",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoB+0Ko1tk+07O6FhyMBHRaKl+IfkFBJsK7MjMvWdcRn2zwXTNKCdtPQXuY9IJUiHgxtyabz/MWlOFxAw5QexyhvaiGi9VTX8qdgIRf9xHG5r+uifuPpLvDs5PAL+2jzUR+r0V0Mj9f9Qj3HOOJ5daXGJ1bkwdjHTlZj48bi5pNZTApnWTGHE6cedbSq9SkxwuzjLAoEe3VkQdt7tktKV64XlYrH+P1LybhJ0YA68kgPa98Knww3c4gj2mdbSIFuZjeb3+ufdAWoc6eHp+eFPtb37qKLn6lwybkNITVcr/WYFdaBsB3qSVK2aOt90HMVU9QAoHXIjCT0f7T/BZpxdCwIDAQAB",
   "background": {
