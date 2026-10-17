@@ -81,7 +81,22 @@ async function grabSelection(tab, fallbackText, fromShortcut = false) {
       ? { kind: /^[\p{L}][\p{L}'’-]{0,39}$/u.test(text) ? 'vocab' : 'text', text, word: text, sentence: '', url: tab.url || '', title: tab.title || '' }
       : { kind: 'none' };
   }
+  if (data.kind === 'video') {
+    data.tabId = tab.id;
+    // Opening the side panel narrows the page and YouTube redraws its transcript from the top;
+    // bring the highlighted lines back into view once the page has settled.
+    const at = data.end ?? data.start;
+    setTimeout(() => returnToTranscript(tab.id, at), 600);
+  }
   await setPending(data);
+}
+
+// Scroll YouTube's transcript back to the line at (or just before) a time in seconds.
+async function returnToTranscript(tabId, seconds) {
+  if (seconds == null) return;
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, func: scrollTranscriptTo, args: [seconds] });
+  } catch {}
 }
 
 // ---------- images ----------
@@ -129,6 +144,9 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     setPending({ kind: 'none' });
   } else if (msg?.type === 'disco-flush') {
     flushAll();
+  } else if (msg?.type === 'disco-return-to' && msg.tabId) {
+    // Sent by the panel as it closes after saving a video moment; wait for the page to widen again.
+    setTimeout(() => returnToTranscript(msg.tabId, msg.seconds), 700);
   }
 });
 
@@ -394,6 +412,23 @@ async function readPage(opts) {
     return { kind: 'vocab', word: text, text, sentence: sentenceAround(range, text), ...contextAround(range), ...pageMeta() };
   }
   return { kind: 'text', text, ...contextAround(range), ...pageMeta() };
+}
+
+function scrollTranscriptTo(seconds) {
+  const TS = /^(\d{1,2}:\d{2}(?::\d{2})?)$/;
+  const toSec = (ts) => ts.split(':').reduce((a, n) => a * 60 + Number(n), 0);
+  let best = null;
+  for (const seg of document.querySelectorAll('ytd-transcript-segment-renderer, transcript-segment-view-model')) {
+    const stamp = [...seg.querySelectorAll('*')].map((e) => (e.textContent || '').trim()).find((t) => TS.test(t));
+    if (!stamp) continue;
+    if (toSec(stamp) <= seconds) best = seg; else if (best) break;
+  }
+  if (!best) return;
+  // Scroll only the transcript's own list, so the rest of the page stays put.
+  let box = best.parentElement;
+  while (box && !(box.scrollHeight > box.clientHeight + 10 && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
+  if (box) box.scrollTop += best.getBoundingClientRect().top - box.getBoundingClientRect().top - box.clientHeight / 2;
+  else best.scrollIntoView({ block: 'center' });
 }
 
 function areaPicker() {

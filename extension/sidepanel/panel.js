@@ -105,7 +105,7 @@ function openCapture(p) {
     imageData: p.imageData || null, imageUrl: p.imageUrl || null, alt: p.alt || '', caption: p.caption || '',
     width: p.width, height: p.height, area: !!p.area, imageError: p.error || '',
     // video
-    lines, start: p.start ?? (lines[0]?.t ?? 0), end: p.end ?? null, channel_id: p.channel_id || '', duration: p.duration || 0,
+    lines, start: p.start ?? (lines[0]?.t ?? 0), end: p.end ?? null, channel_id: p.channel_id || '', duration: p.duration || 0, tabId: p.tabId || null,
     tags: [],
   };
   saving = false;
@@ -567,9 +567,13 @@ async function save() {
     $('save-error').textContent = notes.join(' ');
     $('save-error').hidden = false;
   }
-  setTimeout(() => {
+  // After a transcript save, ask the background to put the transcript back where you were.
+  const backTo = cap.kind === 'video' && cap.tabId && cap.lines.length > 1
+    ? { type: 'disco-return-to', tabId: cap.tabId, seconds: cap.end ?? cap.start } : null;
+  setTimeout(async () => {
     if (cap && cap.id === savedId) {
       cap = null;
+      if (backTo) await chrome.runtime.sendMessage(backTo).catch(() => {});
       window.close();
     }
   }, closeAfter);
