@@ -62,11 +62,19 @@
           <div class="vocab-card">
             <span class="label">Vocabulary</span>
             <div id="vocab-word" class="vocab-word"></div>
-            <div id="vocab-sentence" class="vocab-sentence"></div>
+            <div id="vocab-meta" class="vocab-meta"></div>
+            <ol id="vocab-defs" class="vocab-defs"></ol>
+            <div id="vocab-custom" class="vocab-custom" hidden></div>
+            <div id="vocab-origin" class="vocab-origin"></div>
+            <div id="vocab-status" class="hint"></div>
           </div>
           <img src="../icons/disco-ball.png" alt="" aria-hidden="true" class="ball-float">
         </div>
-        <div class="hint">Goes into your Word of the day list, with this sentence as the example.</div>
+        <div class="row-between">
+          <span id="vocab-credit" class="hint"></span>
+          <button type="button" id="btn-edit-def" class="link">Edit definition</button>
+        </div>
+        <div class="hint">Goes into your Word of the day list.</div>
         <button type="button" id="btn-not-vocab" class="link left">Save it as a regular passage instead</button>
       </div>
 

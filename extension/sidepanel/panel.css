@@ -125,6 +125,14 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-bottom-w
 .vocab-card { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
 .vocab-word { font: 600 28px/1.15 var(--serif); }
 .vocab-sentence { font: 400 15px/1.55 var(--serif); color: #2f3640; }
+.vocab-meta { font: 400 12.5px var(--mono); color: var(--muted); }
+.vocab-defs { margin: 2px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font: 400 15px/1.5 var(--serif); color: #2f3640; }
+.vocab-defs .pos { font: 500 11px var(--mono); color: var(--accent-ink); margin-right: 6px; }
+.vocab-defs .ex { display: block; font-style: italic; color: var(--muted); font-size: 14px; }
+.vocab-custom { font: 400 15px/1.5 var(--serif); color: #2f3640; white-space: pre-line; }
+.vocab-origin { font: 400 14px/1.5 var(--serif); color: #2f3640; border-top: 1px solid #e3e6df; padding-top: 8px; }
+.vocab-origin:empty { display: none; }
+.vocab-origin b { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
 .vocab-sentence mark { background: var(--tint-strong); color: inherit; padding: 0 2px; border-radius: 3px; }
 
 /* image */

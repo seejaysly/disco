@@ -3,7 +3,7 @@
 // saves through the capture endpoint (or keeps it for later when offline).
 
 import { getSession, signIn, signOut } from '../lib/auth.js';
-import { rpc } from '../lib/api.js';
+import { rpc, define } from '../lib/api.js';
 import { saveOrQueue, flushCaptureQueue, captureQueueInfo } from '../lib/queue.js';
 import { getPageMemory, rememberPageTags } from '../lib/pagememory.js';
 import {
@@ -115,7 +115,7 @@ function openCapture(p) {
     // video
     lines, start: p.start ?? (lines[0]?.t ?? 0), end: p.end ?? null, channel_id: p.channel_id || '', duration: p.duration || 0, tabId: p.tabId || null,
     frameLoading: !!p.frameLoading, frameData: p.frameData || null, frameWidth: p.frameWidth, frameHeight: p.frameHeight,
-    tags: [], offered: new Set(), excluded: new Set(),
+    tags: [], offered: new Set(), excluded: new Set(), def: null, defText: null, defLoading: false,
   };
   saving = false;
   $('note').value = '';
@@ -141,6 +141,7 @@ function openCapture(p) {
   renderTags();
   show('capture');
   loadSuggestions(cap.id);
+  if (kind === 'vocab') lookupWord(cap.id);
 }
 
 function renderMain() {
@@ -158,20 +159,7 @@ function renderMain() {
 
   if (k === 'text') $('passage').textContent = shown;
 
-  if (k === 'vocab') {
-    $('vocab-word').textContent = cap.word;
-    const box = $('vocab-sentence');
-    box.textContent = '';
-    const s = cap.sentence;
-    const i = s ? s.toLowerCase().indexOf(cap.word.toLowerCase()) : -1;
-    if (i >= 0) {
-      const mark = document.createElement('mark');
-      mark.textContent = s.slice(i, i + cap.word.length);
-      box.append(s.slice(0, i), mark, s.slice(i + cap.word.length));
-    } else {
-      box.textContent = s || '';
-    }
-  }
+  if (k === 'vocab') renderVocab();
 
   if (k === 'image') {
     const img = $('image-preview');
@@ -216,6 +204,65 @@ function renderMain() {
   }
 }
 
+// ---------- vocabulary ----------
+
+function definitionText(def) {
+  if (!def || !def.found) return '';
+  const lines = (def.definitions || []).map((d) => (d.part_of_speech ? `${d.part_of_speech}: ` : '') + d.text);
+  if (def.etymology) lines.push(`Origin: ${def.etymology}`);
+  return lines.join('\n');
+}
+
+function renderVocab() {
+  $('vocab-word').textContent = cap.word;
+  const d = cap.def;
+  const custom = cap.defText != null;
+  $('vocab-meta').textContent = d && d.found && !custom ? [d.pronunciation, d.part_of_speech].filter(Boolean).join(' · ') : '';
+  const list = $('vocab-defs');
+  list.textContent = '';
+  list.hidden = custom || !(d && d.found && d.definitions?.length);
+  if (!list.hidden) {
+    for (const x of d.definitions) {
+      const li = document.createElement('li');
+      if (x.part_of_speech && d.definitions.some((y) => y.part_of_speech !== x.part_of_speech)) {
+        const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = x.part_of_speech; li.append(pos);
+      }
+      li.append(x.text);
+      if (x.example) { const ex = document.createElement('span'); ex.className = 'ex'; ex.textContent = `“${x.example}”`; li.append(ex); }
+      list.append(li);
+    }
+  }
+  $('vocab-custom').hidden = !custom;
+  $('vocab-custom').textContent = custom ? cap.defText : '';
+  const origin = $('vocab-origin');
+  origin.textContent = '';
+  if (!custom && d && d.etymology) {
+    const b = document.createElement('b'); b.textContent = 'Origin';
+    origin.append(b, d.etymology);
+  }
+  $('vocab-status').textContent = cap.defLoading ? `Looking up “${cap.word}”…`
+    : (!custom && (!d || !d.found)) ? 'No dictionary entry found. Use “Edit definition” to add your own.' : '';
+  $('vocab-credit').textContent = !custom && d && d.found ? 'Definition from Wiktionary' : '';
+}
+
+async function lookupWord(forId) {
+  cap.defLoading = true;
+  renderVocab();
+  let def = null;
+  try { def = await define(cap.word); } catch (e) { if (e.signedOut) { show('signin'); return; } }
+  if (!cap || cap.id !== forId) return;
+  cap.def = def;
+  cap.defLoading = false;
+  if (cap.kind === 'vocab') renderVocab();
+}
+
+$('btn-edit-def').addEventListener('click', () => {
+  $('passage-input').value = cap.defText ?? definitionText(cap.def);
+  $('passage-edit').hidden = false;
+  $('mode-vocab').hidden = true;
+  $('passage-input').focus();
+});
+
 // ---------- editing text / transcript ----------
 
 function startEdit() {
@@ -230,6 +277,12 @@ $('video-text').addEventListener('click', startEdit);
 $('btn-cancel-edit').addEventListener('click', () => { $('passage-edit').hidden = true; renderMain(); });
 $('btn-done-edit').addEventListener('click', () => {
   const v = $('passage-input').value.trim();
+  if (cap.kind === 'vocab') {
+    cap.defText = v && v !== definitionText(cap.def) ? v : null;
+    $('passage-edit').hidden = true;
+    renderMain();
+    return;
+  }
   if (cap.kind === 'video' && !cap.text) { cap.text = v; cap.edited = null; }
   else cap.edited = !v || v === cap.text ? null : v;
   $('passage-edit').hidden = true;
@@ -524,9 +577,18 @@ function buildBody() {
     captured_at: new Date(cap.at || Date.now()).toISOString(),
   };
   if (cap.kind === 'vocab') {
+    const d = cap.def && cap.def.found ? cap.def : null;
+    const details = {
+      example: cap.sentence || undefined,
+      pronunciation: d?.pronunciation || undefined,
+      part_of_speech: d?.part_of_speech || undefined,
+      definitions: d?.definitions?.length ? d.definitions : undefined,
+      etymology: d?.etymology || undefined,
+      definition_source: d ? d.source : undefined,
+      definition_text: cap.defText ?? undefined,
+    };
     return { ...common, kind: 'vocabulary', quote: cap.word, text_captured: cap.word,
-      prefix: cap.prefix || undefined, suffix: cap.suffix || undefined,
-      details: cap.sentence ? { example: cap.sentence } : undefined };
+      prefix: cap.prefix || undefined, suffix: cap.suffix || undefined, details };
   }
   if (cap.kind === 'image') {
     return { ...common, kind: 'image', quote: cap.caption || undefined,

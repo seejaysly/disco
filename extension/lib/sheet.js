@@ -83,6 +83,20 @@ export function sheetRow(c) {
   let url = c.url || '';
   if (c.kind === 'vocabulary') {
     if (!tags.some((t) => t.toLowerCase() === 'vocabulary')) tags.push('vocabulary');
+    // Same layout as the vocabulary entries already in Coda: word | pronunciation | part of speech
+    // definition. ORIGIN …  (the word of the day reads this)
+    const d = c.details || {};
+    const word = c.quote || '';
+    if (d.definition_text) {
+      text = `${word} | ${d.definition_text.replace(/\n+/g, ' ')}`;
+      summary = `${word}\n${d.definition_text}`;
+    } else if (d.definitions?.length) {
+      const pos = d.part_of_speech || d.definitions[0].part_of_speech || '';
+      const defs = d.definitions.map((x) => x.text.replace(/\.$/, '') + (x.example ? `: ${x.example}` : '')).join('; ');
+      const origin = d.etymology ? ` ORIGIN ${d.etymology}` : '';
+      text = `${word} | ${d.pronunciation || ''} | ${pos} ${defs}.${origin}`.replace(/\|\s+\|/, '|');
+      summary = `${word}\n${[d.pronunciation, pos].filter(Boolean).join(' | ')}\n${defs}.${origin}`;
+    }
   } else if (c.kind === 'image') {
     // Alt text that is just a file name ("File:Something.jpg") reads badly in Coda; skip it.
     const alt = c.image?.alt_text || '';

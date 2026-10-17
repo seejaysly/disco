@@ -42,6 +42,9 @@ export const rpc = (name, args) => call(`${SUPABASE_URL}/rest/v1/rpc/${name}`, a
 // The one capture endpoint used by every capture tool. See supabase/functions/capture/index.ts.
 export const capture = (body) => call(`${SUPABASE_URL}/functions/v1/capture`, body);
 
+// Dictionary entry for a vocabulary word: pronunciation, part of speech, definitions, origin.
+export const define = (word) => call(`${SUPABASE_URL}/functions/v1/define`, { word });
+
 // Upload an image (data: URL) to the user's own folder in the private disco-media bucket.
 // The file is named after the capture's client_id, so a retry overwrites rather than duplicates.
 export async function uploadImage(dataUrl, clientId) {
