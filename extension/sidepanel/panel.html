@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+
+<!-- Signed out -->
+<section id="view-signin" class="view center" hidden>
+  <img src="../icons/disco-ball.png" alt="" class="ball-lg">
+  <h1 class="brand">Disco</h1>
+  <p class="lede">Sign in once, then highlight anything on the web, right-click, and choose <b>Save to Disco</b>.</p>
+  <button type="button" id="btn-signin" class="btn-primary">Sign in with Google</button>
+  <p id="signin-error" class="error" role="alert" hidden></p>
+</section>
+
+<!-- Nothing selected yet -->
+<section id="view-empty" class="view center" hidden>
+  <img src="../icons/disco-ball.png" alt="" class="ball-lg">
+  <p class="lede">Highlight text on the page, then right-click and choose <b>Save to Disco</b>.</p>
+  <p class="hint">Or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> after highlighting.</p>
+  <button type="button" id="btn-settings-empty" class="link">Settings</button>
+</section>
+
+<!-- Saving a passage -->
+<section id="view-capture" class="view" hidden>
+  <div class="scroll">
+    <div class="block">
+      <div id="edited-row" hidden>
+        <button type="button" id="btn-toggle-original" class="chip-edited"></button>
+      </div>
+
+      <div id="passage-view">
+        <div class="hint center-text">Click text to edit</div>
+        <div class="passage-wrap">
+          <button type="button" id="passage" class="passage" aria-label="Text. Select to edit"></button>
+          <img src="../icons/disco-ball.png" alt="" aria-hidden="true" class="ball-float">
+        </div>
+        <div class="row-end">
+          <button type="button" id="btn-add-note" class="pill">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path><path d="M9 11h6M9 14h4"></path></svg>
+            Add note
+          </button>
+        </div>
+      </div>
+
+      <div id="passage-edit" hidden>
+        <textarea id="passage-input" aria-label="Edit text" class="passage-input"></textarea>
+        <div class="row-end gap">
+          <button type="button" id="btn-cancel-edit" class="btn-quiet">Cancel</button>
+          <button type="button" id="btn-done-edit" class="btn-dark">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="note-block" class="block" hidden>
+      <div class="row-between">
+        <label for="note" class="label">Note</label>
+        <button type="button" id="btn-remove-note" class="icon-btn" aria-label="Remove note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </button>
+      </div>
+      <textarea id="note" class="note" placeholder="Your thought on this. It shows under the passage in your knowledge guide."></textarea>
+    </div>
+
+    <div class="block" id="tags-block">
+      <span class="label">Suggested tags</span>
+      <div id="tags" class="tags" aria-live="polite"></div>
+      <div id="tags-status" class="hint"></div>
+      <div class="add-tag">
+        <label for="tag-input" class="sr-only">Add a tag</label>
+        <input id="tag-input" type="text" autocomplete="off" placeholder="Add a tag (optional)" role="combobox" aria-expanded="false" aria-controls="tag-menu" aria-autocomplete="list">
+        <button type="button" id="btn-add-tag" class="pill-solid">Add</button>
+        <ul id="tag-menu" class="tag-menu" role="listbox" hidden></ul>
+      </div>
+      <div id="did-you-mean" class="did-you-mean" hidden></div>
+    </div>
+
+    <div class="block">
+      <span class="label">Source</span>
+      <div id="source-view" class="source">
+        <div class="source-text">
+          <div id="src-site" class="src-site"></div>
+          <div id="src-title" class="src-title"></div>
+          <div id="src-meta" class="src-meta"></div>
+          <div id="src-domain" class="src-domain"></div>
+        </div>
+        <button type="button" id="btn-edit-source" class="icon-box" aria-label="Fix source details">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg>
+        </button>
+      </div>
+      <div id="source-edit" class="source-edit" hidden>
+        <label>Publication <input id="ed-site" type="text"></label>
+        <label>Title <input id="ed-title" type="text"></label>
+        <label>Author <input id="ed-author" type="text"></label>
+        <label>Date published <input id="ed-date" type="date"></label>
+        <div class="row-end"><button type="button" id="btn-done-source" class="btn-dark">Done</button></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p id="save-error" class="error" role="alert" hidden></p>
+    <button type="button" id="btn-save" class="btn-save">Save Disco</button>
+    <div class="footer-meta"><span id="who"></span> · <button type="button" id="btn-settings" class="link">Settings</button></div>
+  </footer>
+</section>
+
+<!-- Settings -->
+<section id="view-settings" class="view" hidden>
+  <div class="scroll">
+    <div class="block">
+      <span class="label">Account</span>
+      <p id="settings-who" class="body"></p>
+      <button type="button" id="btn-signout" class="btn-quiet">Sign out</button>
+    </div>
+    <div class="block">
+      <span class="label">Comparison: copy saves to Google Sheet</span>
+      <p class="body small">While the new Disco is compared with the current feed, each save is also copied to your Google Sheet, so Coda keeps receiving everything.</p>
+      <div id="sheet-connected" hidden>
+        <p class="body"><b id="sheet-title"></b> · <span id="sheet-tab"></span> tab</p>
+        <p id="sheet-queue" class="hint"></p>
+        <div class="row gap">
+          <button type="button" id="btn-sheet-retry" class="btn-quiet" hidden>Copy waiting saves now</button>
+          <button type="button" id="btn-sheet-disconnect" class="btn-quiet">Stop copying</button>
+        </div>
+      </div>
+      <div id="sheet-setup">
+        <label class="field">Google Sheet link <input id="sheet-link" type="url" placeholder="https://docs.google.com/spreadsheets/d/…"></label>
+        <label class="field">Tab <input id="sheet-tab-input" type="text" value="Notes"></label>
+        <button type="button" id="btn-sheet-connect" class="btn-dark">Connect sheet</button>
+      </div>
+      <p id="sheet-error" class="error" role="alert" hidden></p>
+    </div>
+  </div>
+  <footer class="footer"><button type="button" id="btn-settings-done" class="btn-save">Done</button></footer>
+</section>
+
+<script type="module" src="panel.js"></script>
+</body>
+</html>
