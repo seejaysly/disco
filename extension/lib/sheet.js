@@ -58,12 +58,19 @@ function publishedForSheet(iso) {
   return m ? `${+m[2]}/${+m[3]}/${m[1]}` : String(iso);
 }
 
-function withTime(url, seconds) {
-  if (!url || seconds == null) return url || '';
+// The video's own address, without the moment, playlist or tracking bits. Coda makes one source
+// per address, so every moment saved from a video must share the same one to land in one video guide.
+// (The new Disco keeps the exact moment with each disco.)
+function plainVideoUrl(url) {
+  if (!url) return '';
   try {
     const u = new URL(url);
-    if (/(^|\.)(youtube\.com|youtu\.be)$/.test(u.hostname)) { u.searchParams.set('t', `${Math.floor(seconds)}s`); return u.toString(); }
-    if (/(^|\.)vimeo\.com$/.test(u.hostname)) { u.hash = `t=${Math.floor(seconds)}s`; return u.toString(); }
+    const host = u.hostname.replace(/^(www|m|music)\./, '');
+    let id = null;
+    if (host === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
+    else if (host === 'youtube.com') id = u.pathname === '/watch' ? u.searchParams.get('v') : (u.pathname.match(/^\/(shorts|live|embed)\/([^/?#]+)/) || [])[2];
+    if (id) return `https://www.youtube.com/watch?v=${id}`;
+    u.hash = '';
     return u.toString();
   } catch { return url; }
 }
@@ -84,7 +91,7 @@ export function sheetRow(c) {
     text = `[Image] ${words} ${c.image?.original_url || ''}`.replace(/\s+/g, ' ').trim();
     summary = words || text;
   } else if (c.kind === 'video') {
-    url = withTime(url, c.video?.start_seconds);
+    url = plainVideoUrl(url);
   }
   return [
     mdy(new Date(c.captured_at || Date.now())),
