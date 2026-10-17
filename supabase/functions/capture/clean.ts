@@ -45,8 +45,9 @@ export function cleanUrl(raw: string | null | undefined, startSeconds?: number |
   if (yt) {
     const out = new URL("https://www.youtube.com/watch");
     out.searchParams.set("v", yt);
+    // Keep a real playlist, but not YouTube's auto-generated mixes ("RD…"), which change per viewer.
     const keepList = u.searchParams.get("list");
-    if (keepList) out.searchParams.set("list", keepList);
+    if (keepList && !keepList.startsWith("RD")) out.searchParams.set("list", keepList);
     if (t != null) out.searchParams.set("t", `${t}s`);
     return { url: out.toString(), domain: "youtube.com", platform: "youtube" };
   }

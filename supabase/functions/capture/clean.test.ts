@@ -4,6 +4,7 @@ const cases: [string, number|undefined, string][] = [
   ["https://www.nytimes.com/2026/a.html?smid=url-share&id=7#section-2", undefined, "https://www.nytimes.com/2026/a.html?id=7#section-2"],
   ["https://youtu.be/dQw4w9WgXcQ?si=xyz", 95.7, "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=95s"],
   ["https://m.youtube.com/watch?v=abc123&feature=share&list=PL1", 0, "https://www.youtube.com/watch?v=abc123&list=PL1&t=0s"],
+  ["https://www.youtube.com/watch?v=AKTyPgwfPgg&list=RDLVAKTyPgwfPgg&start_radio=1", 457, "https://www.youtube.com/watch?v=AKTyPgwfPgg&t=457s"],
   ["https://www.youtube.com/shorts/zz9", undefined, "https://www.youtube.com/watch?v=zz9"],
   ["https://vimeo.com/76979871", 42, "https://vimeo.com/76979871#t=42"],
   ["http://example.com/talk.mp4", 30, "https://example.com/talk.mp4#t=30"],

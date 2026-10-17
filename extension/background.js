@@ -265,7 +265,7 @@ async function readPage(opts) {
       if (h1) base.title = h1;
       else base.title = squash(document.title).replace(/^\(\d+\)\s*/, '').replace(/\s+-\s+YouTube$/, '');
       base.site_name = channel || 'YouTube';
-      base.channel_id = meta('meta[itemprop="channelId"]') || meta('meta[itemprop="identifier"]') || '';
+      base.channel_id = meta('meta[itemprop="channelId"]') || '';
       const up = meta('meta[itemprop="uploadDate"]') || meta('meta[itemprop="datePublished"]');
       const d = up ? new Date(up) : null;
       if (d && !isNaN(d)) base.published_at = d.toISOString().slice(0, 10);
