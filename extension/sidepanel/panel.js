@@ -5,6 +5,7 @@
 import { getSession, signIn, signOut } from '../lib/auth.js';
 import { rpc } from '../lib/api.js';
 import { saveOrQueue, flushCaptureQueue, captureQueueInfo } from '../lib/queue.js';
+import { getPageMemory, rememberPageTags } from '../lib/pagememory.js';
 import {
   getSheetSettings, connectSheet, disconnectSheet, copyToSheet, flushSheetQueue, sheetRow, sheetQueueLength,
 } from '../lib/sheet.js';
@@ -114,7 +115,7 @@ function openCapture(p) {
     // video
     lines, start: p.start ?? (lines[0]?.t ?? 0), end: p.end ?? null, channel_id: p.channel_id || '', duration: p.duration || 0, tabId: p.tabId || null,
     frameLoading: !!p.frameLoading, frameData: p.frameData || null, frameWidth: p.frameWidth, frameHeight: p.frameHeight,
-    tags: [],
+    tags: [], offered: new Set(), excluded: new Set(),
   };
   saving = false;
   $('note').value = '';
@@ -344,15 +345,29 @@ function suggestionText() {
 }
 
 async function loadSuggestions(forId) {
+  // Tags you chose earlier on this page come first; tags you removed on this page stay away.
+  const mem = await getPageMemory(cap.url);
+  if (!cap || cap.id !== forId) return;
+  cap.excluded = new Set(mem.exclude.map((t) => t.toLowerCase()));
+  for (const t of mem.keep) { addTag(t, false); cap.offered.add(t.toLowerCase()); }
+
   const passage = suggestionText();
-  if (!passage) { $('tags-status').textContent = cap.kind === 'vocab' ? '' : 'Add a tag below if you like.'; return; }
+  if (!passage) { $('tags-status').textContent = cap.kind === 'vocab' || cap.tags.length ? '' : 'Add a tag below if you like.'; return; }
   $('tags-status').textContent = 'Finding tags…';
   try {
     const rows = await rpc('suggest_tags_for_capture', {
-      p_passage: passage, p_url: cap.url || null, p_author: cap.author || null, max_results: 8,
+      p_passage: passage, p_url: cap.url || null, p_author: cap.author || null, max_results: 16,
     });
     if (!cap || cap.id !== forId) return;
-    for (const r of rows || []) addTag(r.label, false);
+    let added = 0;
+    for (const r of rows || []) {
+      if (added >= 8) break;
+      const lc = r.label.toLowerCase();
+      if (cap.excluded.has(lc) || hasTag(r.label)) continue;
+      addTag(r.label, false);
+      cap.offered.add(lc);
+      added++;
+    }
     $('tags-status').textContent = cap.tags.length ? '' : 'No suggestions yet. Add a tag below if you like.';
   } catch (e) {
     if (!cap || cap.id !== forId) return;
@@ -566,6 +581,12 @@ async function save() {
   btn.classList.add('done');
   const savedId = cap.id;
   await chrome.storage.session.remove(PENDING_KEY);
+  {
+    const finalLc = new Set(body.tags.map((t) => t.toLowerCase()));
+    const typed = body.tags.filter((t) => !cap.offered.has(t.toLowerCase()));
+    const removed = [...cap.offered].filter((t) => !finalLc.has(t));
+    await rememberPageTags(cap.url, typed, removed).catch(() => {});
+  }
 
   const notes = [];
   let closeAfter = 900;
