@@ -22,12 +22,24 @@
 <!-- Nothing selected yet -->
 <section id="view-empty" class="view center" hidden>
   <img src="../icons/disco-ball.png" alt="" class="ball-lg">
-  <p class="lede">Highlight text on the page, then right-click and choose <b>Save to Disco</b>.</p>
-  <p class="hint">Or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> after highlighting.</p>
+  <p class="lede">Highlight text, then right-click and choose <b>Save to Disco</b>.</p>
+  <ul class="ways">
+    <li>Right-click an image: <b>Save image to Disco</b></li>
+    <li>Highlight lines in a YouTube transcript to save a video moment</li>
+    <li>Press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> while a video plays to save that moment</li>
+    <li>Right-click the page: <b>Capture an area for Disco</b></li>
+  </ul>
+  <p id="empty-queue" class="hint" hidden></p>
   <button type="button" id="btn-settings-empty" class="link">Settings</button>
 </section>
 
-<!-- Saving a passage -->
+<!-- Waiting (area picking, image loading) -->
+<section id="view-wait" class="view center" hidden>
+  <img src="../icons/disco-ball.png" alt="" class="ball-lg spin">
+  <p id="wait-text" class="lede"></p>
+</section>
+
+<!-- Saving a disco -->
 <section id="view-capture" class="view" hidden>
   <div class="scroll">
     <div class="block">
@@ -35,17 +47,53 @@
         <button type="button" id="btn-toggle-original" class="chip-edited"></button>
       </div>
 
-      <div id="passage-view">
+      <!-- text -->
+      <div id="mode-text" class="mode" hidden>
         <div class="hint center-text">Click text to edit</div>
         <div class="passage-wrap">
           <button type="button" id="passage" class="passage" aria-label="Text. Select to edit"></button>
           <img src="../icons/disco-ball.png" alt="" aria-hidden="true" class="ball-float">
         </div>
-        <div class="row-end">
-          <button type="button" id="btn-add-note" class="pill">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path><path d="M9 11h6M9 14h4"></path></svg>
-            Add note
+      </div>
+
+      <!-- a single word -->
+      <div id="mode-vocab" class="mode" hidden>
+        <div class="passage-wrap">
+          <div class="vocab-card">
+            <span class="label">Vocabulary</span>
+            <div id="vocab-word" class="vocab-word"></div>
+            <div id="vocab-sentence" class="vocab-sentence"></div>
+          </div>
+          <img src="../icons/disco-ball.png" alt="" aria-hidden="true" class="ball-float">
+        </div>
+        <div class="hint">Goes into your Word of the day list, with this sentence as the example.</div>
+        <button type="button" id="btn-not-vocab" class="link left">Save it as a regular passage instead</button>
+      </div>
+
+      <!-- image -->
+      <div id="mode-image" class="mode" hidden>
+        <div class="passage-wrap">
+          <div class="image-frame"><img id="image-preview" alt=""></div>
+          <img src="../icons/disco-ball.png" alt="" aria-hidden="true" class="ball-float">
+        </div>
+        <div id="image-caption" class="caption"></div>
+        <p id="image-error" class="error" hidden></p>
+      </div>
+
+      <!-- video moment -->
+      <div id="mode-video" class="mode" hidden>
+        <div class="hint center-text" id="video-edit-hint">Click text to edit</div>
+        <div class="video-box">
+          <button type="button" id="video-text" class="video-text" aria-label="Transcript. Select to edit">
+            <span class="video-head"><span id="video-head-label">Highlighted from the transcript</span><span id="video-range" class="video-range"></span></span>
+            <span id="video-lines" class="video-lines"></span>
           </button>
+          <div class="video-source">
+            <div id="video-channel" class="src-site"></div>
+            <div id="video-title" class="src-title"></div>
+            <div id="video-meta" class="src-meta"></div>
+          </div>
+          <img src="../icons/disco-ball.png" alt="" aria-hidden="true" class="ball-float">
         </div>
       </div>
 
@@ -56,6 +104,13 @@
           <button type="button" id="btn-done-edit" class="btn-dark">Done</button>
         </div>
       </div>
+
+      <div class="row-end" id="note-row">
+        <button type="button" id="btn-add-note" class="pill">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path><path d="M9 11h6M9 14h4"></path></svg>
+          Add note
+        </button>
+      </div>
     </div>
 
     <div id="note-block" class="block" hidden>
@@ -65,11 +120,19 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
         </button>
       </div>
-      <textarea id="note" class="note" placeholder="Your thought on this. It shows under the passage in your knowledge guide."></textarea>
+      <textarea id="note" class="note"></textarea>
     </div>
 
     <div class="block" id="tags-block">
-      <span class="label">Suggested tags</span>
+      <div class="row gap-small">
+        <span class="label">Suggested tags</span>
+        <span class="tipwrap">
+          <button type="button" class="tip-btn" aria-label="About tags" aria-describedby="tag-tip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 7.5v.5"></path></svg>
+          </button>
+          <span id="tag-tip" role="tooltip" class="tip">Tags link this save to related content across your Disco, so you can find it again alongside similar ideas. They also decide where it lands in your knowledge guides.</span>
+        </span>
+      </div>
       <div id="tags" class="tags" aria-live="polite"></div>
       <div id="tags-status" class="hint"></div>
       <div class="add-tag">
@@ -81,7 +144,7 @@
       <div id="did-you-mean" class="did-you-mean" hidden></div>
     </div>
 
-    <div class="block">
+    <div class="block" id="source-block">
       <span class="label">Source</span>
       <div id="source-view" class="source">
         <div class="source-text">
@@ -117,7 +180,12 @@
     <div class="block">
       <span class="label">Account</span>
       <p id="settings-who" class="body"></p>
-      <button type="button" id="btn-signout" class="btn-quiet">Sign out</button>
+      <div class="row"><button type="button" id="btn-signout" class="btn-quiet">Sign out</button></div>
+    </div>
+    <div class="block" id="queue-block" hidden>
+      <span class="label">Waiting to send</span>
+      <p id="queue-text" class="body small"></p>
+      <div class="row"><button type="button" id="btn-queue-retry" class="btn-quiet">Send now</button></div>
     </div>
     <div class="block">
       <span class="label">Comparison: copy saves to Google Sheet</span>
@@ -133,7 +201,7 @@
       <div id="sheet-setup">
         <label class="field">Google Sheet link <input id="sheet-link" type="url" placeholder="https://docs.google.com/spreadsheets/d/…"></label>
         <label class="field">Tab <input id="sheet-tab-input" type="text" value="Notes"></label>
-        <button type="button" id="btn-sheet-connect" class="btn-dark">Connect sheet</button>
+        <div class="row"><button type="button" id="btn-sheet-connect" class="btn-dark">Connect sheet</button></div>
       </div>
       <p id="sheet-error" class="error" role="alert" hidden></p>
     </div>

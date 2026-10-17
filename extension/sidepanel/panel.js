@@ -1,8 +1,10 @@
-// The Disco side panel: shows the highlighted passage, lets the user edit it, add a note,
-// adjust tags and confirm the source, then saves through the capture endpoint.
+// The Disco side panel. It shows what's being saved (a passage, a single word, an image or a
+// video moment), lets the user edit it, add a note, adjust tags and confirm the source, then
+// saves through the capture endpoint (or keeps it for later when offline).
 
 import { getSession, signIn, signOut } from '../lib/auth.js';
-import { rpc, capture } from '../lib/api.js';
+import { rpc } from '../lib/api.js';
+import { saveOrQueue, flushCaptureQueue, captureQueueInfo } from '../lib/queue.js';
 import {
   getSheetSettings, connectSheet, disconnectSheet, copyToSheet, flushSheetQueue, sheetRow, sheetQueueLength,
 } from '../lib/sheet.js';
@@ -10,35 +12,63 @@ import {
 const PENDING_KEY = 'disco.pending';
 const $ = (id) => document.getElementById(id);
 
-let cap = null;            // the capture being edited
+let cap = null;            // the disco being prepared
 let lastResults = [];      // last autocomplete results
 let menuIndex = -1;
 let saving = false;
 
+const hms = (sec) => {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+};
+
 // ---------- views ----------
 
 function show(view) {
-  for (const v of ['signin', 'empty', 'capture', 'settings']) $(`view-${v}`).hidden = v !== view;
+  for (const v of ['signin', 'empty', 'wait', 'capture', 'settings']) $(`view-${v}`).hidden = v !== view;
+}
+
+async function showEmpty() {
+  show('empty');
+  const q = await captureQueueInfo();
+  $('empty-queue').hidden = !q.waiting;
+  $('empty-queue').textContent = q.waiting ? `${q.waiting} save${q.waiting === 1 ? '' : 's'} waiting to send. Disco keeps trying.` : '';
 }
 
 async function start() {
   const session = await getSession();
   if (!session) { show('signin'); return; }
   $('who').textContent = session.user?.email || 'Signed in';
+  flushCaptureQueue().catch(() => {});
   flushSheetQueue().catch(() => {});
   const pending = (await chrome.storage.session.get(PENDING_KEY))[PENDING_KEY];
-  if (pending && pending.text) openCapture(pending);
-  else show('empty');
+  handlePending(pending);
+}
+
+function handlePending(p) {
+  if (!p || p.kind === 'none') { if (!cap || saving) showEmpty(); return; }
+  if (p.kind === 'area-wait') {
+    $('wait-text').textContent = 'Drag a box around the part of the page you want to save. Press Esc to cancel.';
+    show('wait');
+    return;
+  }
+  if (p.kind === 'image' && p.loading) {
+    $('wait-text').textContent = 'Getting the image…';
+    show('wait');
+    return;
+  }
+  openCapture(p);
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'session' && changes[PENDING_KEY]?.newValue) {
-    const p = changes[PENDING_KEY].newValue;
-    getSession().then((s) => {
-      if (!s) { show('signin'); return; }
-      if (p.text) openCapture(p); else if (!cap) show('empty');
-    });
-  }
+  if (area !== 'session' || !changes[PENDING_KEY]) return;
+  const p = changes[PENDING_KEY].newValue;
+  if (!p) return;
+  getSession().then((s) => {
+    if (!s) { show('signin'); return; }
+    handlePending(p);
+  });
 });
 
 // ---------- sign in ----------
@@ -58,15 +88,24 @@ $('btn-signin').addEventListener('click', async () => {
   }
 });
 
-// ---------- capture ----------
+// ---------- open a capture ----------
 
 function openCapture(p) {
   if (cap && cap.id === p.id) { show('capture'); return; }
+  const kind = p.kind === 'vocab' ? 'vocab' : p.kind || 'text';
+  const lines = p.lines || [];
   cap = {
-    id: p.id, at: p.at,
-    text: p.text, edited: null, showingOriginal: false,
+    id: p.id, at: p.at, kind,
+    text: kind === 'video' ? lines.map((l) => l.text).join('\n') : (p.text || p.word || ''),
+    edited: null, showingOriginal: false,
+    word: p.word || '', sentence: p.sentence || '',
     prefix: p.prefix || '', suffix: p.suffix || '',
     url: p.url || '', title: p.title || '', site_name: p.site_name || '', author: p.author || '', published_at: p.published_at || '',
+    // image
+    imageData: p.imageData || null, imageUrl: p.imageUrl || null, alt: p.alt || '', caption: p.caption || '',
+    width: p.width, height: p.height, area: !!p.area, imageError: p.error || '',
+    // video
+    lines, start: p.start ?? (lines[0]?.t ?? 0), end: p.end ?? null, channel_id: p.channel_id || '', duration: p.duration || 0,
     tags: [],
   };
   saving = false;
@@ -78,49 +117,118 @@ function openCapture(p) {
   $('did-you-mean').hidden = true;
   $('save-error').hidden = true;
   $('passage-edit').hidden = true;
-  $('passage-view').hidden = false;
   $('source-edit').hidden = true;
   $('source-view').hidden = false;
   const btn = $('btn-save');
-  btn.disabled = false;
   btn.classList.remove('done');
   btn.textContent = 'Save Disco';
-  renderPassage();
+  btn.disabled = kind === 'image' && !cap.imageData;
+  $('note').placeholder = {
+    image: 'What this image shows you',
+    video: 'Why this moment matters',
+  }[kind] || 'Your thought on this. It shows under the passage in your knowledge guide.';
+  renderMain();
   renderSource();
   renderTags();
   show('capture');
   loadSuggestions(cap.id);
 }
 
-function renderPassage() {
-  const edited = cap.edited != null;
-  $('edited-row').hidden = !edited;
+function renderMain() {
+  const k = cap.kind;
+  const editing = !$('passage-edit').hidden;
+  $('mode-text').hidden = k !== 'text' || editing;
+  $('mode-vocab').hidden = k !== 'vocab';
+  $('mode-image').hidden = k !== 'image';
+  $('mode-video').hidden = k !== 'video' || editing;
+  $('source-block').hidden = k === 'video';
+  const edited = cap.edited != null && (k === 'text' || k === 'video');
+  $('edited-row').hidden = !edited || editing;
   $('btn-toggle-original').textContent = cap.showingOriginal ? 'Original · show your edit' : 'Edited · show original';
-  $('passage').textContent = edited && !cap.showingOriginal ? cap.edited : cap.text;
+  const shown = edited && !cap.showingOriginal ? cap.edited : cap.text;
+
+  if (k === 'text') $('passage').textContent = shown;
+
+  if (k === 'vocab') {
+    $('vocab-word').textContent = cap.word;
+    const box = $('vocab-sentence');
+    box.textContent = '';
+    const s = cap.sentence;
+    const i = s ? s.toLowerCase().indexOf(cap.word.toLowerCase()) : -1;
+    if (i >= 0) {
+      const mark = document.createElement('mark');
+      mark.textContent = s.slice(i, i + cap.word.length);
+      box.append(s.slice(0, i), mark, s.slice(i + cap.word.length));
+    } else {
+      box.textContent = s || '';
+    }
+  }
+
+  if (k === 'image') {
+    const img = $('image-preview');
+    if (cap.imageData) { img.src = cap.imageData; img.hidden = false; } else { img.removeAttribute('src'); img.hidden = true; }
+    img.alt = cap.alt || 'The image you saved';
+    $('image-caption').textContent = cap.caption || cap.alt || (cap.area ? 'A part of the page you captured.' : '');
+    $('image-error').textContent = cap.imageError;
+    $('image-error').hidden = !cap.imageError;
+  }
+
+  if (k === 'video') {
+    const multi = cap.lines.length > 1;
+    $('video-head-label').textContent = cap.lines.length ? (multi ? 'Highlighted from the transcript' : 'Captions at this moment') : 'Video moment';
+    $('video-range').textContent = cap.end != null && cap.end !== cap.start ? `${hms(cap.start)} – ${hms(cap.end)}` : hms(cap.start);
+    const box = $('video-lines');
+    box.textContent = '';
+    if (edited && !cap.showingOriginal) {
+      const d = document.createElement('span');
+      d.className = 'plain';
+      d.textContent = cap.edited;
+      box.append(d);
+    } else if (cap.lines.length) {
+      for (const l of cap.lines) {
+        const t = document.createElement('span'); t.className = 'ts'; t.textContent = hms(l.t);
+        const x = document.createElement('span'); x.className = 'ln'; x.textContent = l.text;
+        box.append(t, x);
+      }
+    } else {
+      const n = document.createElement('span');
+      n.className = 'none';
+      n.textContent = 'No captions at this moment. Click to type what was said, or add a note.';
+      box.append(n);
+    }
+    $('video-channel').textContent = cap.site_name || 'Video';
+    $('video-title').textContent = cap.title || '';
+    $('video-meta').textContent = [cap.published_at ? prettyDate(cap.published_at) : '', cap.duration ? `${Math.round(cap.duration / 60)} min` : '']
+      .filter(Boolean).join(' · ');
+  }
 }
 
-$('passage').addEventListener('click', () => {
+// ---------- editing text / transcript ----------
+
+function startEdit() {
   $('passage-input').value = cap.edited ?? cap.text;
-  $('passage-view').hidden = true;
   $('passage-edit').hidden = false;
   cap.showingOriginal = false;
+  renderMain();
   $('passage-input').focus();
-});
-$('btn-cancel-edit').addEventListener('click', () => {
-  $('passage-edit').hidden = true;
-  $('passage-view').hidden = false;
-  renderPassage();
-});
+}
+$('passage').addEventListener('click', startEdit);
+$('video-text').addEventListener('click', startEdit);
+$('btn-cancel-edit').addEventListener('click', () => { $('passage-edit').hidden = true; renderMain(); });
 $('btn-done-edit').addEventListener('click', () => {
   const v = $('passage-input').value.trim();
-  cap.edited = !v || v === cap.text ? null : v;
+  if (cap.kind === 'video' && !cap.text) { cap.text = v; cap.edited = null; }
+  else cap.edited = !v || v === cap.text ? null : v;
   $('passage-edit').hidden = true;
-  $('passage-view').hidden = false;
-  renderPassage();
+  renderMain();
+  if (cap.tags.length === 0 && v) loadSuggestions(cap.id);
 });
-$('btn-toggle-original').addEventListener('click', () => {
-  cap.showingOriginal = !cap.showingOriginal;
-  renderPassage();
+$('btn-toggle-original').addEventListener('click', () => { cap.showingOriginal = !cap.showingOriginal; renderMain(); });
+
+$('btn-not-vocab').addEventListener('click', () => {
+  cap.kind = 'text';
+  cap.text = cap.word;
+  renderMain();
 });
 
 // note
@@ -155,7 +263,7 @@ function renderSource() {
   else {
     const s = document.createElement('span');
     s.className = 'missing';
-    s.textContent = 'author not found on page';
+    s.textContent = 'author not found';
     meta.append(s);
   }
   $('src-domain').textContent = domain;
@@ -217,11 +325,19 @@ function renderTags() {
   });
 }
 
+function suggestionText() {
+  if (cap.kind === 'image') return [cap.caption, cap.alt, cap.title].filter(Boolean).join('. ');
+  if (cap.kind === 'vocab') return '';
+  return cap.edited ?? cap.text;
+}
+
 async function loadSuggestions(forId) {
+  const passage = suggestionText();
+  if (!passage) { $('tags-status').textContent = cap.kind === 'vocab' ? '' : 'Add a tag below if you like.'; return; }
   $('tags-status').textContent = 'Finding tags…';
   try {
     const rows = await rpc('suggest_tags_for_capture', {
-      p_passage: cap.text, p_url: cap.url || null, p_author: cap.author || null, max_results: 8,
+      p_passage: passage, p_url: cap.url || null, p_author: cap.author || null, max_results: 8,
     });
     if (!cap || cap.id !== forId) return;
     for (const r of rows || []) addTag(r.label, false);
@@ -229,7 +345,7 @@ async function loadSuggestions(forId) {
   } catch (e) {
     if (!cap || cap.id !== forId) return;
     if (e.signedOut) { show('signin'); return; }
-    $('tags-status').textContent = "Couldn't load suggestions. You can still add tags.";
+    $('tags-status').textContent = e.offline ? "You're offline. You can still add tags." : "Couldn't load suggestions. You can still add tags.";
   }
 }
 
@@ -366,26 +482,10 @@ function askDidYouMean(typed, match) {
 
 // ---------- save ----------
 
-async function save() {
-  if (!cap || saving) return;
-  if ($('passage-edit').hidden === false) $('btn-done-edit').click();
-  if ($('source-edit').hidden === false) $('btn-done-source').click();
-  // A tag typed but not yet added still counts.
-  if ($('tag-input').value.trim()) await addTyped();
-  if (!$('did-you-mean').hidden) return; // let the user answer first
-
-  saving = true;
-  const btn = $('btn-save');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
-  $('save-error').hidden = true;
-
-  const body = {
-    quote: cap.edited ?? cap.text,
-    text_captured: cap.text,
-    prefix: cap.prefix || undefined,
-    suffix: cap.suffix || undefined,
-    note: $('note').value.trim() || undefined,
+function buildBody() {
+  const note = $('note').value.trim() || undefined;
+  const common = {
+    note,
     url: cap.url || undefined,
     title: cap.title || undefined,
     site_name: cap.site_name || undefined,
@@ -396,9 +496,47 @@ async function save() {
     client_id: cap.id,
     captured_at: new Date(cap.at || Date.now()).toISOString(),
   };
+  if (cap.kind === 'vocab') {
+    return { ...common, kind: 'vocabulary', quote: cap.word, text_captured: cap.word,
+      prefix: cap.prefix || undefined, suffix: cap.suffix || undefined,
+      details: cap.sentence ? { example: cap.sentence } : undefined };
+  }
+  if (cap.kind === 'image') {
+    return { ...common, kind: 'image', quote: cap.caption || undefined,
+      image: { original_url: cap.imageUrl || undefined, alt_text: cap.alt || undefined, caption: cap.caption || undefined,
+        width: cap.width, height: cap.height } };
+  }
+  if (cap.kind === 'video') {
+    const text = cap.text || undefined;
+    return { ...common, kind: 'video', author: undefined,
+      quote: cap.edited ?? text, text_captured: text,
+      channel_id: cap.channel_id || undefined,
+      video: { start_seconds: cap.start, end_seconds: cap.end ?? undefined, caption_text: text },
+      details: cap.duration ? { duration_seconds: cap.duration } : undefined };
+  }
+  return { ...common, kind: 'highlight', quote: cap.edited ?? cap.text, text_captured: cap.text,
+    prefix: cap.prefix || undefined, suffix: cap.suffix || undefined };
+}
 
+async function save() {
+  if (!cap || saving) return;
+  if (!$('passage-edit').hidden) $('btn-done-edit').click();
+  if (!$('source-edit').hidden) $('btn-done-source').click();
+  // A tag typed but not yet added still counts.
+  if ($('tag-input').value.trim()) await addTyped();
+  if (!$('did-you-mean').hidden) return; // let the user answer first
+  if (cap.kind === 'image' && !cap.imageData) return;
+
+  saving = true;
+  const btn = $('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  $('save-error').hidden = true;
+
+  const body = buildBody();
+  let outcome;
   try {
-    await capture(body);
+    outcome = await saveOrQueue(body, cap.kind === 'image' ? cap.imageData : null);
   } catch (e) {
     saving = false;
     btn.disabled = false;
@@ -409,17 +547,25 @@ async function save() {
     return;
   }
 
-  btn.textContent = 'Saved';
+  btn.textContent = outcome.queued ? 'Saved for later' : 'Saved';
   btn.classList.add('done');
   const savedId = cap.id;
   await chrome.storage.session.remove(PENDING_KEY);
 
+  const notes = [];
   let closeAfter = 900;
-  const sheet = await copyToSheet(sheetRow(body)).catch((e) => ({ error: e.message, waiting: 1 }));
-  if (sheet.waiting) {
-    $('save-error').textContent = "Saved to Disco. Couldn't copy it to your Google Sheet yet; Disco will try again next time (or from Settings).";
-    $('save-error').hidden = false;
+  if (outcome.queued) {
+    notes.push("You're offline, so this is kept on your computer and will be sent to Disco when you're back online.");
     closeAfter = 3500;
+  }
+  const sheet = await copyToSheet(sheetRow(body)).catch((e) => ({ error: e.message, waiting: 1 }));
+  if (sheet.waiting && !outcome.queued) {
+    notes.push("Couldn't copy it to your Google Sheet yet; Disco will try again (or use Settings).");
+    closeAfter = 3500;
+  }
+  if (notes.length) {
+    $('save-error').textContent = notes.join(' ');
+    $('save-error').hidden = false;
   }
   setTimeout(() => {
     if (cap && cap.id === savedId) {
@@ -442,8 +588,17 @@ async function openSettings() {
   returnTo = !$('view-capture').hidden ? 'capture' : 'empty';
   const s = await getSession();
   $('settings-who').textContent = s ? `Signed in as ${s.user?.email || 'you'}` : 'Signed out';
+  await renderQueue();
   await renderSheetSettings();
   show('settings');
+}
+
+async function renderQueue() {
+  const q = await captureQueueInfo();
+  $('queue-block').hidden = !q.waiting;
+  $('queue-text').textContent = q.waiting
+    ? `${q.waiting} save${q.waiting === 1 ? '' : 's'} made offline ${q.waiting === 1 ? 'is' : 'are'} waiting to go to Disco.` + (q.problems.length ? ` Last problem: ${q.problems[q.problems.length - 1]}` : '')
+    : '';
 }
 
 async function renderSheetSettings() {
@@ -462,8 +617,9 @@ async function renderSheetSettings() {
 
 $('btn-settings').addEventListener('click', openSettings);
 $('btn-settings-empty').addEventListener('click', openSettings);
-$('btn-settings-done').addEventListener('click', () => show(returnTo === 'capture' && cap ? 'capture' : 'empty'));
+$('btn-settings-done').addEventListener('click', () => { if (returnTo === 'capture' && cap) show('capture'); else showEmpty(); });
 $('btn-signout').addEventListener('click', async () => { await signOut(); cap = null; show('signin'); });
+$('btn-queue-retry').addEventListener('click', async () => { await flushCaptureQueue(); await renderQueue(); });
 $('btn-sheet-connect').addEventListener('click', async () => {
   const btn = $('btn-sheet-connect');
   btn.disabled = true;

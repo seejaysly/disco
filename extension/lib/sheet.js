@@ -58,14 +58,38 @@ function publishedForSheet(iso) {
   return m ? `${+m[2]}/${+m[3]}/${m[1]}` : String(iso);
 }
 
+function withTime(url, seconds) {
+  if (!url || seconds == null) return url || '';
+  try {
+    const u = new URL(url);
+    if (/(^|\.)(youtube\.com|youtu\.be)$/.test(u.hostname)) { u.searchParams.set('t', `${Math.floor(seconds)}s`); return u.toString(); }
+    if (/(^|\.)vimeo\.com$/.test(u.hostname)) { u.hash = `t=${Math.floor(seconds)}s`; return u.toString(); }
+    return u.toString();
+  } catch { return url; }
+}
+
+// One row in the same shape the original extension writes, for any kind of disco.
 export function sheetRow(c) {
+  const tags = [...(c.tags || [])];
+  let text = c.text_captured || c.quote || '';
+  let summary = c.quote || c.text_captured || '';
+  let url = c.url || '';
+  if (c.kind === 'vocabulary') {
+    if (!tags.some((t) => t.toLowerCase() === 'vocabulary')) tags.push('vocabulary');
+  } else if (c.kind === 'image') {
+    const words = c.image?.caption || c.image?.alt_text || '';
+    text = `[Image] ${words} ${c.image?.original_url || ''}`.replace(/\s+/g, ' ').trim();
+    summary = c.note || words || text;
+  } else if (c.kind === 'video') {
+    url = withTime(url, c.video?.start_seconds);
+  }
   return [
     mdy(new Date(c.captured_at || Date.now())),
-    c.text_captured || c.quote || '',
-    c.quote || c.text_captured || '',
-    (c.tags || []).join(', '),
+    text,
+    summary,
+    tags.join(', '),
     c.title || '',
-    c.url || '',
+    url,
     c.site_name || '',
     c.author || '',
     publishedForSheet(c.published_at),

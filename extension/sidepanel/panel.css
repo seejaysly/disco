@@ -94,6 +94,7 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-bottom-w
 .tag-text { display: flex; flex-direction: column; line-height: 1.2; }
 .tag-label { font-weight: 600; font-size: 13.5px; }
 .tag-why { font-size: 10.5px; color: var(--faint); }
+.tag.new .tag-why { color: #cf3f3f; font-weight: 600; }
 .tag-x { width: 24px; height: 24px; border: 0; background: transparent; border-radius: 999px; color: #8a92a0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .add-tag { position: relative; display: flex; gap: 8px; }
 .add-tag input { flex: 1; min-width: 0; border: 1px dashed var(--line-dashed); border-radius: 999px; padding: 8px 14px; background: var(--paper); color: var(--ink); font: 400 13.5px var(--sans); }
@@ -106,6 +107,42 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-bottom-w
 .tag-menu .opt-hint { color: var(--faint); font-size: 12px; text-align: right; }
 .tag-menu .opt-new { color: var(--accent-ink); }
 .did-you-mean { font-size: 13px; background: var(--paper); border: 1px solid var(--tint-line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+/* tag explainer */
+.gap-small { gap: 4px; }
+.tipwrap { position: relative; display: inline-flex; }
+.tip-btn { width: 22px; height: 22px; padding: 0; border: 0; background: transparent; border-radius: 999px; color: #8a92a0; cursor: help; display: flex; align-items: center; justify-content: center; }
+.tip { display: none; position: absolute; top: 26px; left: -8px; z-index: 6; width: 240px; padding: 10px 12px; border-radius: 8px; background: var(--ink); color: #fff; font: 400 12.5px/1.45 var(--sans); box-shadow: 0 6px 16px rgba(22,27,34,.18); }
+.tipwrap:hover .tip, .tipwrap:focus-within .tip { display: block; }
+
+/* empty and waiting */
+.ways { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); max-width: 300px; }
+.spin { animation: spin 2.4s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.left { align-self: flex-start; }
+
+/* vocabulary */
+.vocab-card { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.vocab-word { font: 600 28px/1.15 var(--serif); }
+.vocab-sentence { font: 400 15px/1.55 var(--serif); color: #2f3640; }
+.vocab-sentence mark { background: var(--tint-strong); color: inherit; padding: 0 2px; border-radius: 3px; }
+
+/* image */
+.image-frame { border: 1px solid var(--line); border-radius: 10px; background: #dfe3da; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 120px; }
+.image-frame img { display: block; max-width: 100%; max-height: 48vh; object-fit: contain; }
+.caption { font: italic 400 14px/1.45 var(--serif); color: #2f3640; }
+
+/* video */
+.video-box { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.video-text { width: 100%; text-align: left; border: 0; background: var(--paper); border-radius: 10px 10px 0 0; padding: 14px 16px; cursor: text; display: flex; flex-direction: column; gap: 10px; }
+.video-head { display: flex; align-items: baseline; gap: 8px; padding-right: 28px; font: 400 11px var(--mono); color: var(--muted); }
+.video-range { color: var(--accent-ink); font-weight: 500; white-space: nowrap; }
+.video-lines { display: grid; grid-template-columns: 52px 1fr; column-gap: 10px; row-gap: 8px; align-items: baseline; max-height: 44vh; overflow: auto; }
+.video-lines .ts { font: 500 11.5px var(--mono); color: #8a92a0; }
+.video-lines .ln { font: 400 16px/1.5 var(--serif); }
+.video-lines .plain { grid-column: 1 / -1; font: 400 16px/1.5 var(--serif); white-space: pre-line; }
+.video-lines .none { grid-column: 1 / -1; font-size: 13px; color: var(--faint); }
+.video-source { padding: 10px 16px 12px; border-top: 1px solid #e3e6df; background: var(--soft); border-radius: 0 0 10px 10px; display: flex; flex-direction: column; gap: 3px; }
 
 /* source */
 .source { border: 1px solid var(--line); border-radius: 10px; background: var(--soft); padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; }
