@@ -77,9 +77,12 @@ export function sheetRow(c) {
   if (c.kind === 'vocabulary') {
     if (!tags.some((t) => t.toLowerCase() === 'vocabulary')) tags.push('vocabulary');
   } else if (c.kind === 'image') {
-    const words = c.image?.caption || c.image?.alt_text || '';
+    // Alt text that is just a file name ("File:Something.jpg") reads badly in Coda; skip it.
+    const alt = c.image?.alt_text || '';
+    const usefulAlt = /^(file:)?.*\.(jpe?g|png|gif|webp|svg|tiff?)$/i.test(alt.trim()) ? '' : alt;
+    const words = c.image?.caption || c.note || usefulAlt || c.title || '';
     text = `[Image] ${words} ${c.image?.original_url || ''}`.replace(/\s+/g, ' ').trim();
-    summary = c.note || words || text;
+    summary = words || text;
   } else if (c.kind === 'video') {
     url = withTime(url, c.video?.start_seconds);
   }
